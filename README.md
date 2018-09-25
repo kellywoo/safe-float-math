@@ -17,8 +17,16 @@ spec: es5
 npm install safe-float-math
 ```
 
+### import
 
-## Running the tests
+```
+// es5
+const {SafeFloat} = require('safe-float-math');
+// es6
+import {SafeFloat} from 'safe-float-math'
+```
+
+### Running the tests
 
 ```
 npm run test
@@ -34,6 +42,8 @@ const sf1 = new SafeFloat(0.03:number)
 const sf2 = new SafeFloat(3:int, 2: precision)
 sf1.toNumber() === sf2.toNumber()
 // both 0.03
+
+Safefloat
 
 ```
 
@@ -53,8 +63,12 @@ sf1.toFixed(digits, rounding, mask) //return string
 ```
 0.1 + 0.2 
 // 0.30000000000000004
-const sf1 = new Safe(0.1)
-const sf2 = new Safe(0.2)
+// use static method
+SafeFloat.plus(0.1, 0.2).toNumber()
+// 0.3
+// use instance method
+const sf1 = new SafeFloat(0.1)
+const sf2 = new SafeFloat(0.2)
 sf1.plus(0.2).toNumber() === sf1.plus(sf2).toNumber()
 // 0.3
 // math: plus(+), minus(-), mult(*), div(/)
@@ -67,8 +81,8 @@ new SafeFloat(-81235678.87).mask();
 
 ## Authors
 
-* **Kelly Woo** - *Initial work* - [GitHub](https://github.com/kellywoo)
+* **Kelly Woo** - [GitHub](https://github.com/kellywoo)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
+This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/kellywoo/safe-float-math/blob/master/README.md) file for details
