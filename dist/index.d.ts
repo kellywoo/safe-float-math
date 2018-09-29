@@ -1,4 +1,5 @@
-declare type SafeFloatAcceptableType = number | string | SafeFloat;
+export declare type SafeFloatAcceptableType = number | string | SafeFloat;
+export declare type RoundingType = 0 | 1 | -1;
 export declare class SafeFloat {
     value: any;
     constructor(int: any, precision?: number);
@@ -13,7 +14,7 @@ export declare class SafeFloat {
         };
     };
     static calculate(n1: SafeFloatAcceptableType, n2: SafeFloatAcceptableType, op: string): SafeFloat;
-    static getPrecision(a: SafeFloatAcceptableType): SafeFloat;
+    static create(a: SafeFloatAcceptableType): SafeFloat;
     static isNumber(n: any): boolean;
     static repeatZero(n: number): string;
     static strRepeat(str: string, n: number): string;
@@ -23,17 +24,21 @@ export declare class SafeFloat {
     static minus(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
     static mult(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
     static div(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
+    static trimZero(str: string): string;
+    static hasPoint(str: string): boolean;
     toNumber(): number;
-    ceil(precision: number, isString?: boolean): string | number;
-    round(precision: number, isString?: boolean): string | number;
-    floor(precision: number, isString?: boolean): string | number;
+    ceil(precision: number): number;
+    round(precision: number): number;
+    floor(precision: number): number;
+    ceilStr(precision: number): string;
+    roundStr(precision: number): string;
+    floorStr(precision: number): string;
     toString(): string;
     mask(): string;
-    toFixed(precision: number, rounding?: 0 | 1 | -1, mask?: boolean): string;
+    toFixed(precision: number, rounding?: RoundingType, mask?: boolean): string;
     private dealRounding;
     plus(x: SafeFloatAcceptableType): SafeFloat;
     minus(x: SafeFloatAcceptableType): SafeFloat;
     mult(x: SafeFloatAcceptableType): SafeFloat;
     div(x: SafeFloatAcceptableType): SafeFloat;
 }
-export {};

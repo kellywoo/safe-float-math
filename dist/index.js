@@ -60,21 +60,18 @@ var SafeFloat = /** @class */ (function () {
         return { x: retX, y: retY };
     };
     SafeFloat.calculate = function (n1, n2, op) {
-        var x = SafeFloat.getPrecision(n1);
-        var y = SafeFloat.getPrecision(n2);
+        var x = SafeFloat.create(n1);
+        var y = SafeFloat.create(n2);
         var o;
         switch (op) {
             case '+':
                 o = SafeFloat.matchingPrecision(x, y);
                 return new SafeFloat(o.x.int + o.y.int, o.x.precision);
-                break;
             case '-':
                 o = SafeFloat.matchingPrecision(x, y);
                 return new SafeFloat(o.x.int - o.y.int, o.x.precision);
-                break;
             case '*':
                 return new SafeFloat(x.value.int * y.value.int, x.value.precision + y.value.precision);
-                break;
             case '/':
                 o = SafeFloat.matchingPrecision(x, y);
                 return new SafeFloat(o.x.int / o.y.int);
@@ -82,7 +79,7 @@ var SafeFloat = /** @class */ (function () {
                 throw createError('only +,-,*,/ are supported');
         }
     };
-    SafeFloat.getPrecision = function (a) {
+    SafeFloat.create = function (a) {
         if (a instanceof SafeFloat) {
             return a;
         }
@@ -97,10 +94,13 @@ var SafeFloat = /** @class */ (function () {
         return typeof n === 'number';
     };
     SafeFloat.repeatZero = function (n) {
-        return n === 0 ? '' : SafeFloat.strRepeat('0', n);
+        return SafeFloat.strRepeat('0', n);
     };
     SafeFloat.strRepeat = function (str, n) {
         var rest = '';
+        if (n < 1) {
+            return rest;
+        }
         while (n > 0) {
             if (n > 1) {
                 if (n % 2) {
@@ -152,17 +152,32 @@ var SafeFloat = /** @class */ (function () {
     SafeFloat.div = function (x, y) {
         return SafeFloat.calculate(x, y, '/');
     };
+    SafeFloat.trimZero = function (str) {
+        return SafeFloat.hasPoint(str) ? str.replace(/(\.?)0*$/, '') : str;
+    };
+    SafeFloat.hasPoint = function (str) {
+        return /\./.test(str);
+    };
     SafeFloat.prototype.toNumber = function () {
         return this.value.number;
     };
-    SafeFloat.prototype.ceil = function (precision, isString) {
-        return isString ? this.toFixed(precision, 1) : +this.toFixed(precision, 1);
+    SafeFloat.prototype.ceil = function (precision) {
+        return +this.toFixed(precision, 1);
     };
-    SafeFloat.prototype.round = function (precision, isString) {
-        return isString ? this.toFixed(precision, 0) : +this.toFixed(precision, 0);
+    SafeFloat.prototype.round = function (precision) {
+        return +this.toFixed(precision, 0);
     };
-    SafeFloat.prototype.floor = function (precision, isString) {
-        return isString ? this.toFixed(precision, -1) : +this.toFixed(precision, -1);
+    SafeFloat.prototype.floor = function (precision) {
+        return +this.toFixed(precision, -1);
+    };
+    SafeFloat.prototype.ceilStr = function (precision) {
+        return this.toFixed(precision, 1);
+    };
+    SafeFloat.prototype.roundStr = function (precision) {
+        return this.toFixed(precision, 0);
+    };
+    SafeFloat.prototype.floorStr = function (precision) {
+        return this.toFixed(precision, -1);
     };
     SafeFloat.prototype.toString = function () {
         return this.value.string;
@@ -179,21 +194,20 @@ var SafeFloat = /** @class */ (function () {
         return mask ? SafeFloat.mask(this.dealRounding(precision, rounding)) : this.dealRounding(precision, rounding);
     };
     SafeFloat.prototype.dealRounding = function (precision, rounding) {
-        var temp = '';
+        var num = this.value.string + (SafeFloat.hasPoint(this.value.string) ? '' : '.') + SafeFloat.repeatZero(precision);
+        num = +num.replace(new RegExp("(\\.)(\\d{" + precision + "})"), '$2$1');
         switch (rounding) {
             case 0:
-                temp = this.value.number.toFixed(precision);
+                num = Math.round(num);
                 break;
             case -1:
-                temp = this.value.number.toFixed(precision + 1).slice(0, -1);
+                num = Math.floor(num);
                 break;
             case 1:
-                temp = '' + Math.ceil(+this.value.number.toFixed(precision + 1).replace(/(\.)(\d*)(\d$)/, '$2.$3'));
-                temp = temp.slice(0, -1 * precision) + '.' + temp.slice(-1 * precision);
+                num = Math.ceil(num);
                 break;
-            default:
         }
-        return temp;
+        return this.convertToStrNumber(num, precision);
     };
     SafeFloat.prototype.plus = function (x) {
         return SafeFloat.plus(this, x);
