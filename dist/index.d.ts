@@ -4,7 +4,6 @@ export declare type SignType = -1 | 1;
 export declare class SafeFloat {
     value: any;
     constructor(int: any, precision?: number);
-    private static getSignChar;
     static matchingPrecision(x: SafeFloat, y: SafeFloat): {
         x: {
             int: any;

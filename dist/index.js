@@ -45,9 +45,6 @@ var SafeFloat = /** @class */ (function () {
             }
         };
     }
-    SafeFloat.getSignChar = function (sign) {
-        return sign === -1 ? '-' : '';
-    };
     SafeFloat.matchingPrecision = function (x, y) {
         var gap = x.value.precision - y.value.precision;
         var retX, retY;
