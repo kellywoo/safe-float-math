@@ -1,12 +1,13 @@
 {
   "name": "safe-float-math",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "A helper for safe float math",
   "main": "dist/index.js",
   "types": "dist/index.d.js",
   "scripts": {
     "test": "mocha --reporter spec",
-    "build": "tsc"
+    "build": "tsc",
+    "start": "tsc -w"
   },
   "repository": {
     "type": "git",

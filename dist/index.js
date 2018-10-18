@@ -11,7 +11,6 @@ var SafeFloat = /** @class */ (function () {
         }
         var _a = _int.toExponential().toString().split('e'), strI = _a[0], strP = _a[1];
         var intI, intP;
-        // sign
         if (strI[0] === '-') {
             _sign = -1;
             strI = strI.substring(1);
@@ -29,7 +28,7 @@ var SafeFloat = /** @class */ (function () {
         }
         _int = intI;
         _precision = precision - intP;
-        _string = (_sign === 1 ? '' : '-') + this.convertToStrNumber(_int, _precision);
+        _string = this.convertToStrNumber(_int, _precision, _sign);
         _number = +_string;
         this.value = {
             get precision() {
@@ -123,21 +122,22 @@ var SafeFloat = /** @class */ (function () {
         var strArr = sign ? num.slice(1).split('.') : num.split('.');
         return sign + strArr[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (strArr[1] ? ('.' + strArr[1]) : '');
     };
-    SafeFloat.prototype.convertToStrNumber = function (int, precision) {
+    SafeFloat.prototype.convertToStrNumber = function (int, precision, sign) {
         var str = '' + int;
+        var signChar = sign === -1 ? '-' : '';
         if (precision === 0) {
             return str;
         }
         if (precision > 0) {
             if (str.length <= precision) {
-                return '0.' + SafeFloat.repeatZero(precision - str.length) + str;
+                return signChar + '0.' + SafeFloat.repeatZero(precision - str.length) + str;
             }
             else {
-                return str.slice(0, -precision) + '.' + str.slice(str.length - precision);
+                return signChar + str.slice(0, -precision) + '.' + str.slice(str.length - precision);
             }
         }
         else {
-            return str + SafeFloat.repeatZero(Math.abs(precision));
+            return signChar + str + SafeFloat.repeatZero(Math.abs(precision));
         }
     };
     SafeFloat.plus = function (x, y) {
@@ -155,6 +155,9 @@ var SafeFloat = /** @class */ (function () {
     SafeFloat.trimZero = function (str) {
         return SafeFloat.hasPoint(str) ? str.replace(/(\.?)0*$/, '') : str;
     };
+    SafeFloat.neat = function (str, should) {
+        return should ? SafeFloat.trimZero(str) : str;
+    };
     SafeFloat.hasPoint = function (str) {
         return /\./.test(str);
     };
@@ -170,14 +173,14 @@ var SafeFloat = /** @class */ (function () {
     SafeFloat.prototype.floor = function (precision) {
         return +this.toFixed(precision, -1);
     };
-    SafeFloat.prototype.ceilStr = function (precision) {
-        return this.toFixed(precision, 1);
+    SafeFloat.prototype.ceilStr = function (precision, neat) {
+        return SafeFloat.neat(this.toFixed(precision, 1), neat);
     };
-    SafeFloat.prototype.roundStr = function (precision) {
-        return this.toFixed(precision, 0);
+    SafeFloat.prototype.roundStr = function (precision, neat) {
+        return SafeFloat.neat(this.toFixed(precision, 0), neat);
     };
-    SafeFloat.prototype.floorStr = function (precision) {
-        return this.toFixed(precision, -1);
+    SafeFloat.prototype.floorStr = function (precision, neat) {
+        return SafeFloat.neat(this.toFixed(precision, -1), neat);
     };
     SafeFloat.prototype.toString = function () {
         return this.value.string;
@@ -207,7 +210,7 @@ var SafeFloat = /** @class */ (function () {
                 num = Math.ceil(num);
                 break;
         }
-        return this.convertToStrNumber(num, precision);
+        return this.convertToStrNumber(Math.abs(num), precision, num < 0 ? -1 : 1);
     };
     SafeFloat.prototype.plus = function (x) {
         return SafeFloat.plus(this, x);

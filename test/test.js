@@ -48,8 +48,20 @@ describe('get safeFloat function test', () => {
     var result = SafeFloat.trimZero(new SafeFloat(2.9999).ceilStr(3));
     expect(result).to.equal('3');
   });
+  it(`should return new SafeFloat(-1.6e-7).floor(8) => -1.6e-7`, () => {
+    var result = new SafeFloat(-1.6e-7).floor(8);
+    expect(result).to.equal(-1.6e-7);
+  });
+  it('should return new SafeFloat(0).floorStr(8) => 0.00000000', () => {
+    var result = new SafeFloat(0).floorStr(8);
+    expect(result).to.equal('0.00000000');
+  });
+  it('should return new SafeFloat(0).floorStr(8, true) => 0', () => {
+    var result = new SafeFloat(0).floorStr(8, true);
+    expect(result).to.equal('0');
+  })
   it(`should return mask`, () => {
-    var result = SafeFloat.mask('-12345.1235')
+    var result = SafeFloat.mask('-12345.1235');
     expect(result).to.equal('-12,345.1235');
   });
 });

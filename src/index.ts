@@ -1,25 +1,24 @@
 const createError = (msg: string) => new Error (msg);
 export type SafeFloatAcceptableType = number | string | SafeFloat
 export type RoundingType = 0 | 1 | -1
+export type SignType = -1|1
 export class SafeFloat {
   value: any;
 
   constructor (int: any, precision: number = 0) {
-    let _int: number, _string: string, _number: number, _sign: -1 | 1, _precision: number;
+    let _int: number, _string: string, _number: number, _sign: SignType, _precision: number;
     _int = !SafeFloat.isNumber (int) ? parseFloat ((<string>int)) : int;
     if ( isNaN (_int) ) {
       throw createError ('arguments should be a number')
     }
     let [ strI, strP ] = _int.toExponential ().toString ().split ('e');
     let intI, intP;
-// sign
     if ( strI[ 0 ] === '-' ) {
       _sign = -1;
       strI = strI.substring (1);
     } else {
       _sign = 1;
     }
-
     if ( strI.length > 2 ) {
       intI = +strI.replace ('.', '');
       intP = +strP - (strI.length - 2);
@@ -27,11 +26,11 @@ export class SafeFloat {
       intI = +strI;
       intP = +strP;
     }
-
     _int = intI;
     _precision = precision - intP;
-    _string = (_sign === 1 ? '' : '-') + this.convertToStrNumber (_int, _precision);
+    _string = this.convertToStrNumber (_int, _precision, _sign);
     _number = +_string;
+
     this.value = {
       get precision (): number {
         return _precision
@@ -130,20 +129,21 @@ export class SafeFloat {
     return sign + strArr[ 0 ].replace (/\B(?=(\d{3})+(?!\d))/g, ',') + (strArr[ 1 ] ? ('.' + strArr[ 1 ]) : '');
   }
 
-  private convertToStrNumber (int: number, precision: number): string {
+  private convertToStrNumber (int: number, precision: number, sign: SignType): string {
     let str: string = '' + int;
+    let signChar = sign === -1 ? '-' : '';
     if ( precision === 0 ) {
       return str;
     }
 
     if ( precision > 0 ) {
       if ( str.length <= precision ) {
-        return '0.' + SafeFloat.repeatZero (precision - str.length) + str;
+        return signChar+'0.' + SafeFloat.repeatZero (precision - str.length) + str;
       } else {
-        return str.slice (0, -precision) + '.' + str.slice (str.length - precision);
+        return signChar+str.slice (0, -precision) + '.' + str.slice (str.length - precision);
       }
     } else {
-      return str + SafeFloat.repeatZero (Math.abs (precision));
+      return signChar+str + SafeFloat.repeatZero (Math.abs (precision));
     }
   }
 
@@ -167,6 +167,10 @@ export class SafeFloat {
     return SafeFloat.hasPoint (str) ? str.replace (/(\.?)0*$/, '') : str;
   }
 
+  static neat (str: string, should?: boolean): string {
+    return should? SafeFloat.trimZero(str) : str;
+  }
+
   static hasPoint (str: string): boolean {
     return /\./.test (str);
   }
@@ -187,16 +191,16 @@ export class SafeFloat {
     return +this.toFixed (precision, -1)
   }
 
-  ceilStr (precision: number): string {
-    return this.toFixed (precision, 1);
+  ceilStr (precision: number, neat?: boolean): string {
+    return SafeFloat.neat(this.toFixed (precision, 1), neat);
   }
 
-  roundStr (precision: number): string {
-    return this.toFixed (precision, 0);
+  roundStr (precision: number, neat?: boolean): string {
+    return SafeFloat.neat(this.toFixed (precision, 0), neat);
   }
 
-  floorStr (precision: number): string {
-    return this.toFixed (precision, -1);
+  floorStr (precision: number, neat?: boolean): string {
+    return SafeFloat.neat(this.toFixed (precision, -1), neat);
   }
 
   toString (): string {
@@ -228,7 +232,7 @@ export class SafeFloat {
         num = Math.ceil (num);
         break;
     }
-    return this.convertToStrNumber (num, precision);
+    return this.convertToStrNumber (Math.abs(num), precision, num < 0 ? -1 : 1);
   }
 
   plus (x: SafeFloatAcceptableType): SafeFloat {

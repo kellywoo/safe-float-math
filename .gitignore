@@ -39,3 +39,7 @@ testem.log
 # System Files
 .DS_Store
 Thumbs.db
+
+# Practice File
+test/run.ts
+test/run.js

@@ -1,5 +1,6 @@
 export declare type SafeFloatAcceptableType = number | string | SafeFloat;
 export declare type RoundingType = 0 | 1 | -1;
+export declare type SignType = -1 | 1;
 export declare class SafeFloat {
     value: any;
     constructor(int: any, precision?: number);
@@ -25,14 +26,15 @@ export declare class SafeFloat {
     static mult(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
     static div(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
     static trimZero(str: string): string;
+    static neat(str: string, should?: boolean): string;
     static hasPoint(str: string): boolean;
     toNumber(): number;
     ceil(precision: number): number;
     round(precision: number): number;
     floor(precision: number): number;
-    ceilStr(precision: number): string;
-    roundStr(precision: number): string;
-    floorStr(precision: number): string;
+    ceilStr(precision: number, neat?: boolean): string;
+    roundStr(precision: number, neat?: boolean): string;
+    floorStr(precision: number, neat?: boolean): string;
     toString(): string;
     mask(): string;
     toFixed(precision: number, rounding?: RoundingType, mask?: boolean): string;
