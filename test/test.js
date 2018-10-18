@@ -59,10 +59,14 @@ describe('get safeFloat function test', () => {
   it('should return new SafeFloat(0).floorStr(8, true) => 0', () => {
     var result = new SafeFloat(0).floorStr(8, true);
     expect(result).to.equal('0');
-  })
+  });
   it(`should return mask`, () => {
     var result = SafeFloat.mask('-12345.1235');
     expect(result).to.equal('-12,345.1235');
+  });
+  it(`should return new SafeFloat(10000000).mult(1000000000).floorStr(8)=> 10000000000000000.00000000`, () => {
+    var result = new SafeFloat(10000000).mult(1000000000).floorStr(8)
+    expect(result).to.equal('10000000000000000.00000000');
   });
 });
 

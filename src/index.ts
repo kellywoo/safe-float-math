@@ -1,51 +1,82 @@
-const createError = (msg: string) => new Error (msg);
 export type SafeFloatAcceptableType = number | string | SafeFloat
 export type RoundingType = 0 | 1 | -1
-export type SignType = -1|1
+export type SignType = -1 | 1
+
+const createError = (msg: string) => new Error (msg);
+const precisionRangeError = (precision: number) => {
+  if ( precision < 0 || precision > 100 ) {
+    throw createError ('precision should be between 0 to 100')
+  }
+};
+
+const lengthBelowPoint = (str: string): number => {
+  let position = str.indexOf ('.');
+  if ( position === -1 ) {
+    return 0;
+  }
+  return str.length - position - 1
+};
+
+const getIntAndPrecision = (num: number, precision = 0): [ number, number, SignType ] => {
+  let [ i, e ] = num.toExponential ().toString ().split ('e');
+  let int, exp, sign: SignType = 1;
+  let position = i.indexOf ('.');
+  if ( i[ 0 ] === '-' ) {
+    sign = -1;
+    i = i.substring (1);
+  }
+  int = position !== -1 ? parseInt (i.replace ('.', '')) : parseInt (i);
+  exp = position !== -1 ? +e - lengthBelowPoint (i) : parseInt (e);
+
+  // return reversed precision
+  // ex) 0.1 = 1, 10 = -1
+  return [ int, precision - exp, sign ];
+};
+
+const convertToStrNumber = (int: number, precision: number, sign: SignType): string => {
+  let str: string = '' + int;
+  let signChar = sign === -1 ? '-' : '';
+  if ( precision !== 0 ) {
+    if ( precision > 0 ) {
+      if ( str.length <= precision ) {
+        str = '0.' + SafeFloat.repeatZero (precision - str.length) + str;
+      } else {
+        str = str.slice (0, -precision) + '.' + str.slice (str.length - precision);
+      }
+    } else {
+      str += SafeFloat.repeatZero (Math.abs (precision));
+    }
+  }
+  return signChar + str;
+};
+
+
 export class SafeFloat {
   value: any;
 
-  constructor (int: any, precision: number = 0) {
-    let _int: number, _string: string, _number: number, _sign: SignType, _precision: number;
-    _int = !SafeFloat.isNumber (int) ? parseFloat ((<string>int)) : int;
+  constructor (num: any, precision: number = 0) {
+    let _int: number = !SafeFloat.isNumber (num) ? parseFloat ((<string>num)) : num;
     if ( isNaN (_int) ) {
       throw createError ('arguments should be a number')
     }
-    let [ strI, strP ] = _int.toExponential ().toString ().split ('e');
-    let intI, intP;
-    if ( strI[ 0 ] === '-' ) {
-      _sign = -1;
-      strI = strI.substring (1);
-    } else {
-      _sign = 1;
-    }
-    if ( strI.length > 2 ) {
-      intI = +strI.replace ('.', '');
-      intP = +strP - (strI.length - 2);
-    } else {
-      intI = +strI;
-      intP = +strP;
-    }
-    _int = intI;
-    _precision = precision - intP;
-    _string = this.convertToStrNumber (_sign * _int, _precision);
-    _number = +_string;
+    let [ int, exp, sign ] = getIntAndPrecision (_int, precision);
+    let string = convertToStrNumber (int, exp, sign);
+    let number = +string;
 
     this.value = {
       get precision (): number {
-        return _precision
+        return exp
       },
       get string (): string {
-        return _string
+        return string
       },
       get number (): number {
-        return _number
+        return number
       },
       get int (): number {
-        return _sign * _int
+        return sign * int
       }
     }
-
   }
 
   static matchingPrecision (x: SafeFloat, y: SafeFloat) {
@@ -129,27 +160,6 @@ export class SafeFloat {
     return sign + strArr[ 0 ].replace (/\B(?=(\d{3})+(?!\d))/g, ',') + (strArr[ 1 ] ? ('.' + strArr[ 1 ]) : '');
   }
 
-  private convertToStrNumber (int: number, precision: number): string {
-    let str: string = '' + int;
-    let signChar = '';
-    if ( str[ 0 ] === '-' ) {
-      signChar = '-';
-      str = str.substring (1);
-    }
-    if ( precision !== 0 ) {
-      if ( precision > 0 ) {
-        if ( str.length <= precision ) {
-          str = '0.' + SafeFloat.repeatZero (precision - str.length) + str;
-        } else {
-          str = str.slice (0, -precision) + '.' + str.slice (str.length - precision);
-        }
-      } else {
-          str += SafeFloat.repeatZero (Math.abs (precision));
-      }
-    }
-    return signChar+str;
-  }
-
   static plus (x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat {
     return SafeFloat.calculate (x, y, '+');
   }
@@ -171,7 +181,7 @@ export class SafeFloat {
   }
 
   static neat (str: string, should?: boolean): string {
-    return should? SafeFloat.trimZero(str) : str;
+    return should ? SafeFloat.trimZero (str) : str;
   }
 
   static hasPoint (str: string): boolean {
@@ -183,27 +193,30 @@ export class SafeFloat {
   }
 
   ceil (precision: number): number {
-    return +this.toFixed (precision, 1)
+    precisionRangeError(precision);
+    return +this.dealRounding (precision, 1)
   }
 
   round (precision: number): number {
-    return +this.toFixed (precision, 0)
+    precisionRangeError(precision);
+    return +this.dealRounding (precision, 0)
   }
 
   floor (precision: number): number {
-    return +this.toFixed (precision, -1)
+    precisionRangeError(precision);
+    return +this.dealRounding (precision, -1)
   }
 
   ceilStr (precision: number, neat?: boolean): string {
-    return SafeFloat.neat(this.toFixed (precision, 1), neat);
+    return SafeFloat.neat (this.toFixed (precision, 1), neat);
   }
 
   roundStr (precision: number, neat?: boolean): string {
-    return SafeFloat.neat(this.toFixed (precision, 0), neat);
+    return SafeFloat.neat (this.toFixed (precision, 0), neat);
   }
 
   floorStr (precision: number, neat?: boolean): string {
-    return SafeFloat.neat(this.toFixed (precision, -1), neat);
+    return SafeFloat.neat (this.toFixed (precision, -1), neat);
   }
 
   toString (): string {
@@ -215,15 +228,22 @@ export class SafeFloat {
   }
 
   toFixed (precision: number, rounding: RoundingType = 0, mask = false): string {
-    if ( precision < 0 || precision > 100 ) {
-      throw createError ('precision should be between 0 to 100')
+    precisionRangeError(precision);
+    let value = this.dealRounding (precision, rounding);
+    if (precision !== 0 ){
+      value += ((value.indexOf('.') === -1? '.' : '') + SafeFloat.repeatZero(precision - lengthBelowPoint(value)));
     }
-    return mask ? SafeFloat.mask (this.dealRounding (precision, rounding)) : this.dealRounding (precision, rounding);
+    return mask ? SafeFloat.mask (value) : value;
   }
 
   private dealRounding (precision: number, rounding: RoundingType): string {
-    let num: any = this.value.string + ( SafeFloat.hasPoint (this.value.string) ? '' : '.') + SafeFloat.repeatZero (precision);
-    num = +num.replace (new RegExp (`(\\.)(\\d{${precision}})`), '$2$1');
+    let num: number;
+
+    if ( precision === 0 ) {
+      num = this.value.number;
+    } else {
+      num = parseFloat ((this.value.string + SafeFloat.repeatZero (precision)).replace (new RegExp (`(\\.)(\\d{${precision}})`), '$2$1'));
+    }
     switch ( rounding ) {
       case 0:
         num = Math.round (num);
@@ -235,7 +255,7 @@ export class SafeFloat {
         num = Math.ceil (num);
         break;
     }
-    return this.convertToStrNumber (num, precision);
+    return convertToStrNumber.apply(null, getIntAndPrecision (num, precision));
   }
 
   plus (x: SafeFloatAcceptableType): SafeFloat {

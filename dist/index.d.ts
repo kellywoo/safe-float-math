@@ -3,7 +3,7 @@ export declare type RoundingType = 0 | 1 | -1;
 export declare type SignType = -1 | 1;
 export declare class SafeFloat {
     value: any;
-    constructor(int: any, precision?: number);
+    constructor(num: any, precision?: number);
     static matchingPrecision(x: SafeFloat, y: SafeFloat): {
         x: {
             int: any;
@@ -20,7 +20,6 @@ export declare class SafeFloat {
     static repeatZero(n: number): string;
     static strRepeat(str: string, n: number): string;
     static mask(_num: any): string;
-    private convertToStrNumber;
     static plus(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
     static minus(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
     static mult(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;

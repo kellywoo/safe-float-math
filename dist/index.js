@@ -1,47 +1,73 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var createError = function (msg) { return new Error(msg); };
+var precisionRangeError = function (precision) {
+    if (precision < 0 || precision > 100) {
+        throw createError('precision should be between 0 to 100');
+    }
+};
+var lengthBelowPoint = function (str) {
+    var position = str.indexOf('.');
+    if (position === -1) {
+        return 0;
+    }
+    return str.length - position - 1;
+};
+var getIntAndPrecision = function (num, precision) {
+    if (precision === void 0) { precision = 0; }
+    var _a = num.toExponential().toString().split('e'), i = _a[0], e = _a[1];
+    var int, exp, sign = 1;
+    var position = i.indexOf('.');
+    if (i[0] === '-') {
+        sign = -1;
+        i = i.substring(1);
+    }
+    int = position !== -1 ? parseInt(i.replace('.', '')) : parseInt(i);
+    exp = position !== -1 ? +e - lengthBelowPoint(i) : parseInt(e);
+    // return reversed precision
+    // ex) 0.1 = 1, 10 = -1
+    return [int, precision - exp, sign];
+};
+var convertToStrNumber = function (int, precision, sign) {
+    var str = '' + int;
+    var signChar = sign === -1 ? '-' : '';
+    if (precision !== 0) {
+        if (precision > 0) {
+            if (str.length <= precision) {
+                str = '0.' + SafeFloat.repeatZero(precision - str.length) + str;
+            }
+            else {
+                str = str.slice(0, -precision) + '.' + str.slice(str.length - precision);
+            }
+        }
+        else {
+            str += SafeFloat.repeatZero(Math.abs(precision));
+        }
+    }
+    return signChar + str;
+};
 var SafeFloat = /** @class */ (function () {
-    function SafeFloat(int, precision) {
+    function SafeFloat(num, precision) {
         if (precision === void 0) { precision = 0; }
-        var _int, _string, _number, _sign, _precision;
-        _int = !SafeFloat.isNumber(int) ? parseFloat(int) : int;
+        var _int = !SafeFloat.isNumber(num) ? parseFloat(num) : num;
         if (isNaN(_int)) {
             throw createError('arguments should be a number');
         }
-        var _a = _int.toExponential().toString().split('e'), strI = _a[0], strP = _a[1];
-        var intI, intP;
-        if (strI[0] === '-') {
-            _sign = -1;
-            strI = strI.substring(1);
-        }
-        else {
-            _sign = 1;
-        }
-        if (strI.length > 2) {
-            intI = +strI.replace('.', '');
-            intP = +strP - (strI.length - 2);
-        }
-        else {
-            intI = +strI;
-            intP = +strP;
-        }
-        _int = intI;
-        _precision = precision - intP;
-        _string = this.convertToStrNumber(_sign * _int, _precision);
-        _number = +_string;
+        var _a = getIntAndPrecision(_int, precision), int = _a[0], exp = _a[1], sign = _a[2];
+        var string = convertToStrNumber(int, exp, sign);
+        var number = +string;
         this.value = {
             get precision() {
-                return _precision;
+                return exp;
             },
             get string() {
-                return _string;
+                return string;
             },
             get number() {
-                return _number;
+                return number;
             },
             get int() {
-                return _sign * _int;
+                return sign * int;
             }
         };
     }
@@ -122,28 +148,6 @@ var SafeFloat = /** @class */ (function () {
         var strArr = sign ? num.slice(1).split('.') : num.split('.');
         return sign + strArr[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (strArr[1] ? ('.' + strArr[1]) : '');
     };
-    SafeFloat.prototype.convertToStrNumber = function (int, precision) {
-        var str = '' + int;
-        var signChar = '';
-        if (str[0] === '-') {
-            signChar = '-';
-            str = str.substring(1);
-        }
-        if (precision !== 0) {
-            if (precision > 0) {
-                if (str.length <= precision) {
-                    str = '0.' + SafeFloat.repeatZero(precision - str.length) + str;
-                }
-                else {
-                    str = str.slice(0, -precision) + '.' + str.slice(str.length - precision);
-                }
-            }
-            else {
-                str += SafeFloat.repeatZero(Math.abs(precision));
-            }
-        }
-        return signChar + str;
-    };
     SafeFloat.plus = function (x, y) {
         return SafeFloat.calculate(x, y, '+');
     };
@@ -169,13 +173,16 @@ var SafeFloat = /** @class */ (function () {
         return this.value.number;
     };
     SafeFloat.prototype.ceil = function (precision) {
-        return +this.toFixed(precision, 1);
+        precisionRangeError(precision);
+        return +this.dealRounding(precision, 1);
     };
     SafeFloat.prototype.round = function (precision) {
-        return +this.toFixed(precision, 0);
+        precisionRangeError(precision);
+        return +this.dealRounding(precision, 0);
     };
     SafeFloat.prototype.floor = function (precision) {
-        return +this.toFixed(precision, -1);
+        precisionRangeError(precision);
+        return +this.dealRounding(precision, -1);
     };
     SafeFloat.prototype.ceilStr = function (precision, neat) {
         return SafeFloat.neat(this.toFixed(precision, 1), neat);
@@ -195,14 +202,21 @@ var SafeFloat = /** @class */ (function () {
     SafeFloat.prototype.toFixed = function (precision, rounding, mask) {
         if (rounding === void 0) { rounding = 0; }
         if (mask === void 0) { mask = false; }
-        if (precision < 0 || precision > 100) {
-            throw createError('precision should be between 0 to 100');
+        precisionRangeError(precision);
+        var value = this.dealRounding(precision, rounding);
+        if (precision !== 0) {
+            value += ((value.indexOf('.') === -1 ? '.' : '') + SafeFloat.repeatZero(precision - lengthBelowPoint(value)));
         }
-        return mask ? SafeFloat.mask(this.dealRounding(precision, rounding)) : this.dealRounding(precision, rounding);
+        return mask ? SafeFloat.mask(value) : value;
     };
     SafeFloat.prototype.dealRounding = function (precision, rounding) {
-        var num = this.value.string + (SafeFloat.hasPoint(this.value.string) ? '' : '.') + SafeFloat.repeatZero(precision);
-        num = +num.replace(new RegExp("(\\.)(\\d{" + precision + "})"), '$2$1');
+        var num;
+        if (precision === 0) {
+            num = this.value.number;
+        }
+        else {
+            num = parseFloat((this.value.string + SafeFloat.repeatZero(precision)).replace(new RegExp("(\\.)(\\d{" + precision + "})"), '$2$1'));
+        }
         switch (rounding) {
             case 0:
                 num = Math.round(num);
@@ -214,7 +228,7 @@ var SafeFloat = /** @class */ (function () {
                 num = Math.ceil(num);
                 break;
         }
-        return this.convertToStrNumber(num, precision);
+        return convertToStrNumber.apply(null, getIntAndPrecision(num, precision));
     };
     SafeFloat.prototype.plus = function (x) {
         return SafeFloat.plus(this, x);
