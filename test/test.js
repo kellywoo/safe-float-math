@@ -28,14 +28,23 @@ describe('get safeFloat function test', () => {
     var result = new SafeFloat(-81235678.87).mask();
     expect(result).to.equal('-81,235,678.87');
   });
-  it(`should return new SafeFloat(-2.9999).floor(3) => -3`, () => {
-    var result = new SafeFloat(-2.9999).floor(3);
-    expect(result).to.equal(-3);
-  });
   it(`should return new SafeFloat(2.9999).floor(3) => 2.999`, () => {
     var result = new SafeFloat(2.9999).floor(3);
     expect(result).to.equal(2.999);
   });
+  it(`should return new SafeFloat(-2.9999).floor(3) => -3`, () => {
+    var result = new SafeFloat(-2.9999).floor(3);
+    expect(result).to.equal(-3);
+  });
+  it(`should return new SafeFloat(2.9999).cut(3) => 2.999`, () => {
+    var result = new SafeFloat(2.9999).cut(3);
+    expect(result).to.equal(2.999);
+  });
+  it(`should return new SafeFloat(-2.9999).cut(3) => -2.999`, () => {
+    var result = new SafeFloat(-2.9999).cut(3);
+    expect(result).to.equal(-2.999);
+  });
+
   it(`should return new SafeFloat(-2.9999).ceilStr(3) => -2.999`, () => {
     var result = new SafeFloat(-2.9999).ceilStr(3);
     expect(result).to.equal('-2.999');

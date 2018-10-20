@@ -3,8 +3,8 @@ export type RoundingType = 0 | 1 | -1
 export type SignType = -1 | 1
 
 const createError = (msg: string) => new Error (msg);
-const precisionRangeError = (precision: number) => {
-  if ( precision < 0 || precision > 100 ) {
+const precisionRangeError = (limitTo: number) => {
+  if ( limitTo < 0 || limitTo > 100 ) {
     throw createError ('precision should be between 0 to 100')
   }
 };
@@ -16,6 +16,10 @@ const lengthBelowPoint = (str: string): number => {
   }
   return str.length - position - 1
 };
+
+const addPoint = (str: string): string => {
+  return /\./.test(str) ? '' : '.';
+}
 
 const getIntAndPrecision = (num: number, precision = 0): [ number, number, SignType ] => {
   let [ i, e ] = num.toExponential ().toString ().split ('e');
@@ -188,61 +192,74 @@ export class SafeFloat {
     return /\./.test (str);
   }
 
+  static cut (str: string, limitTo: number) {
+    precisionRangeError(limitTo);
+    return (str + addPoint(str) + SafeFloat.repeatZero (limitTo)).replace (new RegExp (`(\\.\\d{${limitTo}})(\\d*$)`), '$1');
+  }
+
   toNumber (): number {
     return this.value.number;
   }
 
-  ceil (precision: number): number {
-    precisionRangeError(precision);
-    return +this.dealRounding (precision, 1)
+  ceil (limitTo: number): number {
+    precisionRangeError(limitTo);
+    return +this.dealRounding (limitTo, 1)
   }
 
-  round (precision: number): number {
-    precisionRangeError(precision);
-    return +this.dealRounding (precision, 0)
+  round (limitTo: number): number {
+    precisionRangeError(limitTo);
+    return +this.dealRounding (limitTo, 0)
   }
 
-  floor (precision: number): number {
-    precisionRangeError(precision);
-    return +this.dealRounding (precision, -1)
+  floor (limitTo: number): number {
+    precisionRangeError(limitTo);
+    return +this.dealRounding (limitTo, -1)
   }
 
-  ceilStr (precision: number, neat?: boolean): string {
-    return SafeFloat.neat (this.toFixed (precision, 1), neat);
+  ceilStr (limitTo: number, neat?: boolean): string {
+    return SafeFloat.neat (this.toFixed (limitTo, 1), neat);
   }
 
-  roundStr (precision: number, neat?: boolean): string {
-    return SafeFloat.neat (this.toFixed (precision, 0), neat);
+  roundStr (limitTo: number, neat?: boolean): string {
+    return SafeFloat.neat (this.toFixed (limitTo, 0), neat);
   }
 
-  floorStr (precision: number, neat?: boolean): string {
-    return SafeFloat.neat (this.toFixed (precision, -1), neat);
+  floorStr (limitTo: number, neat?: boolean): string {
+    return SafeFloat.neat (this.toFixed (limitTo, -1), neat);
   }
 
   toString (): string {
     return this.value.string;
   }
 
+  cutStr (limitTo: number, neat?: boolean): string{
+    return SafeFloat.neat (SafeFloat.cut(this.value.string, limitTo), neat);
+  }
+
+  cut (limitTo: number): number{
+    return +SafeFloat.cut(this.value.string, limitTo);
+  }
+
   mask (): string {
     return SafeFloat.mask (this.value.string);
   }
 
-  toFixed (precision: number, rounding: RoundingType = 0, mask = false): string {
-    precisionRangeError(precision);
-    let value = this.dealRounding (precision, rounding);
-    if (precision !== 0 ){
-      value += ((value.indexOf('.') === -1? '.' : '') + SafeFloat.repeatZero(precision - lengthBelowPoint(value)));
+  toFixed (limitTo: number, rounding: RoundingType = 0, mask = false): string {
+    precisionRangeError(limitTo);
+    let value = this.dealRounding (limitTo, rounding);
+    if (limitTo !== 0 ){
+      value += ((SafeFloat.hasPoint(value)? '' : '.') + SafeFloat.repeatZero(limitTo - lengthBelowPoint(value)));
     }
     return mask ? SafeFloat.mask (value) : value;
   }
 
-  private dealRounding (precision: number, rounding: RoundingType): string {
+  private dealRounding (limitTo: number, rounding: RoundingType): string {
     let num: number;
 
-    if ( precision === 0 ) {
+    if ( limitTo === 0 ) {
       num = this.value.number;
     } else {
-      num = parseFloat ((this.value.string + SafeFloat.repeatZero (precision)).replace (new RegExp (`(\\.)(\\d{${precision}})`), '$2$1'));
+      num = parseFloat ((this.value.string + SafeFloat.repeatZero (limitTo)).replace (new RegExp (`(\\.)(\\d{${limitTo}})`), '$2$1'));
     }
     switch ( rounding ) {
       case 0:
@@ -255,7 +272,7 @@ export class SafeFloat {
         num = Math.ceil (num);
         break;
     }
-    return convertToStrNumber.apply(null, getIntAndPrecision (num, precision));
+    return convertToStrNumber.apply(null, getIntAndPrecision (num, limitTo));
   }
 
   plus (x: SafeFloatAcceptableType): SafeFloat {

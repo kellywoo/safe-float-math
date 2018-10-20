@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var createError = function (msg) { return new Error(msg); };
-var precisionRangeError = function (precision) {
-    if (precision < 0 || precision > 100) {
+var precisionRangeError = function (limitTo) {
+    if (limitTo < 0 || limitTo > 100) {
         throw createError('precision should be between 0 to 100');
     }
 };
@@ -12,6 +12,9 @@ var lengthBelowPoint = function (str) {
         return 0;
     }
     return str.length - position - 1;
+};
+var addPoint = function (str) {
+    return /\./.test(str) ? '' : '.';
 };
 var getIntAndPrecision = function (num, precision) {
     if (precision === void 0) { precision = 0; }
@@ -169,53 +172,63 @@ var SafeFloat = /** @class */ (function () {
     SafeFloat.hasPoint = function (str) {
         return /\./.test(str);
     };
+    SafeFloat.cut = function (str, limitTo) {
+        precisionRangeError(limitTo);
+        return (str + addPoint(str) + SafeFloat.repeatZero(limitTo)).replace(new RegExp("(\\.\\d{" + limitTo + "})(\\d*$)"), '$1');
+    };
     SafeFloat.prototype.toNumber = function () {
         return this.value.number;
     };
-    SafeFloat.prototype.ceil = function (precision) {
-        precisionRangeError(precision);
-        return +this.dealRounding(precision, 1);
+    SafeFloat.prototype.ceil = function (limitTo) {
+        precisionRangeError(limitTo);
+        return +this.dealRounding(limitTo, 1);
     };
-    SafeFloat.prototype.round = function (precision) {
-        precisionRangeError(precision);
-        return +this.dealRounding(precision, 0);
+    SafeFloat.prototype.round = function (limitTo) {
+        precisionRangeError(limitTo);
+        return +this.dealRounding(limitTo, 0);
     };
-    SafeFloat.prototype.floor = function (precision) {
-        precisionRangeError(precision);
-        return +this.dealRounding(precision, -1);
+    SafeFloat.prototype.floor = function (limitTo) {
+        precisionRangeError(limitTo);
+        return +this.dealRounding(limitTo, -1);
     };
-    SafeFloat.prototype.ceilStr = function (precision, neat) {
-        return SafeFloat.neat(this.toFixed(precision, 1), neat);
+    SafeFloat.prototype.ceilStr = function (limitTo, neat) {
+        return SafeFloat.neat(this.toFixed(limitTo, 1), neat);
     };
-    SafeFloat.prototype.roundStr = function (precision, neat) {
-        return SafeFloat.neat(this.toFixed(precision, 0), neat);
+    SafeFloat.prototype.roundStr = function (limitTo, neat) {
+        return SafeFloat.neat(this.toFixed(limitTo, 0), neat);
     };
-    SafeFloat.prototype.floorStr = function (precision, neat) {
-        return SafeFloat.neat(this.toFixed(precision, -1), neat);
+    SafeFloat.prototype.floorStr = function (limitTo, neat) {
+        return SafeFloat.neat(this.toFixed(limitTo, -1), neat);
     };
     SafeFloat.prototype.toString = function () {
         return this.value.string;
     };
+    SafeFloat.prototype.cutStr = function (limitTo, neat) {
+        return SafeFloat.neat(SafeFloat.cut(this.value.string, limitTo), neat);
+    };
+    SafeFloat.prototype.cut = function (limitTo) {
+        return +SafeFloat.cut(this.value.string, limitTo);
+    };
     SafeFloat.prototype.mask = function () {
         return SafeFloat.mask(this.value.string);
     };
-    SafeFloat.prototype.toFixed = function (precision, rounding, mask) {
+    SafeFloat.prototype.toFixed = function (limitTo, rounding, mask) {
         if (rounding === void 0) { rounding = 0; }
         if (mask === void 0) { mask = false; }
-        precisionRangeError(precision);
-        var value = this.dealRounding(precision, rounding);
-        if (precision !== 0) {
-            value += ((value.indexOf('.') === -1 ? '.' : '') + SafeFloat.repeatZero(precision - lengthBelowPoint(value)));
+        precisionRangeError(limitTo);
+        var value = this.dealRounding(limitTo, rounding);
+        if (limitTo !== 0) {
+            value += ((SafeFloat.hasPoint(value) ? '' : '.') + SafeFloat.repeatZero(limitTo - lengthBelowPoint(value)));
         }
         return mask ? SafeFloat.mask(value) : value;
     };
-    SafeFloat.prototype.dealRounding = function (precision, rounding) {
+    SafeFloat.prototype.dealRounding = function (limitTo, rounding) {
         var num;
-        if (precision === 0) {
+        if (limitTo === 0) {
             num = this.value.number;
         }
         else {
-            num = parseFloat((this.value.string + SafeFloat.repeatZero(precision)).replace(new RegExp("(\\.)(\\d{" + precision + "})"), '$2$1'));
+            num = parseFloat((this.value.string + SafeFloat.repeatZero(limitTo)).replace(new RegExp("(\\.)(\\d{" + limitTo + "})"), '$2$1'));
         }
         switch (rounding) {
             case 0:
@@ -228,7 +241,7 @@ var SafeFloat = /** @class */ (function () {
                 num = Math.ceil(num);
                 break;
         }
-        return convertToStrNumber.apply(null, getIntAndPrecision(num, precision));
+        return convertToStrNumber.apply(null, getIntAndPrecision(num, limitTo));
     };
     SafeFloat.prototype.plus = function (x) {
         return SafeFloat.plus(this, x);
