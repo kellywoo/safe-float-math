@@ -42,7 +42,6 @@ const sf1 = new SafeFloat(0.03:number)
 const sf2 = new SafeFloat(3:int, 2: precision)
 sf1.toNumber() === sf2.toNumber()
 // both 0.03
-
 ```
 
 ### supported static method
@@ -55,14 +54,13 @@ sf1.toNumber() === sf2.toNumber()
 |minus(x,y)| same as SafeFloat.calculate(a,b,'-')|
 |mult(x,y)| same as SafeFloat.calculate(a,b,'*')|
 |div(x,y)| same as SafeFloat.calculate(a,b,'/')|
-|cut(x,y)| act like slice by digits below zero|
+|cut(str, digit)| act like slice by nth-digit below zero|
 |isNumber(x)| return boolean|
 |mask(str)| add comma for thousand |
 |strRepeat(str, num)| return string repeated|
 |trimZero(str)| trim zeroes below decimal point|
 
 ```
-
 SafeFloat.create(0.2) == new SafeFloat(0.2) //return SafeFloat instance for 0.2
 
 SafeFloat.calculate(01, 0.2, '+') 
@@ -82,7 +80,6 @@ SafeFloat.trimZero('12.0100')
 
 SafeFloat.strRepeat('h',3)
 //'hhh'
-
 ```
 
 ### supported instance method
@@ -91,14 +88,14 @@ SafeFloat.strRepeat('h',3)
 | ------------- | ------------- |
 |toString()| return string not tempered|
 |toNumber()| return number not tempered|
-|floor(digit)| return number floored by digit-th digit below zero|
-|floorStr(digit, neat)| return string floored by digit-th digit below zero|
-|round(digit)| return number rounded by digit-th digit below zero|
-|roundStr(digit, neat)| return string rounded by digit-th digit below zero|
-|ceil(digit)| return number ceiled by digit-th digit below zero|
-|ceilStr(digit, neat)| return string ceiled by digit-th digit below zero|
-|cut(digit,y)| return number sliced by digit-th below zero|
-|cutStr(digit, neat)|  return string sliced by digit-th below zero|
+|floor(digit)| return number floored by n-th digit below zero|
+|floorStr(digit, neat)| return string floored by n-th digit below zero|
+|round(digit)| return number rounded by n-th digit below zero|
+|roundStr(digit, neat)| return string rounded by n-th digit below zero|
+|ceil(digit)| return number ceiled by n-th digit below zero|
+|ceilStr(digit, neat)| return string ceiled by n-th digit below zero|
+|cut(digit)| return number sliced by n-th digit below zero|
+|cutStr(digit, neat)|  return string sliced by n-th digit below zero|
 |mask(str)| return result of toString() with mask|
 |toFixed(digit, rounding, mask)| return string after tempered</ br>rounding(1:ceil, 0: rounding, -1: floor)|
 |plus(x)| same as SafeFloat.calculate(this,x,'+')|
@@ -114,7 +111,6 @@ difference between floor and cut(give different results on negative number)
 
 new SafeFloat(-2.1239).floor(3) => -2.124
 new SafeFloat(-2.1239).cut(3) => -2.123
-
 ```
 
 ```
@@ -163,7 +159,6 @@ sf.plus(0.2).toString()
 
 SafeFloat.plus(0.1, 0.2).toString()
 // 0.3
-
 ```
 
 ## Authors

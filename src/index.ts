@@ -244,6 +244,7 @@ export class SafeFloat {
     return SafeFloat.mask (this.value.string);
   }
 
+
   toFixed (limitTo: number, rounding: RoundingType = 0, mask = false): string {
     precisionRangeError(limitTo);
     let value = this.dealRounding (limitTo, rounding);
