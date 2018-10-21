@@ -77,5 +77,13 @@ describe('get safeFloat function test', () => {
     var result = new SafeFloat(10000000).mult(1000000000).floorStr(8)
     expect(result).to.equal('10000000000000000.00000000');
   });
+  it('should return new SafeFloat(0.123456).floorStr(0) => 0', () => {
+    var result = new SafeFloat(0.123456).floorStr(0);
+    expect(result).to.equal('0');
+  });
+  it('should return new SafeFloat(0.123456).cutStr(0) => 0', () => {
+    var result = new SafeFloat(0.123456).cutStr(0);
+    expect(result).to.equal('0');
+  });
 });
 

@@ -192,9 +192,11 @@ export class SafeFloat {
     return /\./.test (str);
   }
 
-  static cut (str: string, limitTo: number) {
+  static slice (str: string, limitTo: number): string {
     precisionRangeError(limitTo);
-    return (str + addPoint(str) + SafeFloat.repeatZero (limitTo)).replace (new RegExp (`(\\.\\d{${limitTo}})(\\d*$)`), '$1');
+    return limitTo === 0 ?
+      str.replace (new RegExp (`(\\.\\d*$)`), '') :
+      (str + addPoint(str) + SafeFloat.repeatZero (limitTo)).replace (new RegExp (`(\\.\\d{${limitTo}})(\\d*$)`), '$1');
   }
 
   toNumber (): number {
@@ -202,17 +204,14 @@ export class SafeFloat {
   }
 
   ceil (limitTo: number): number {
-    precisionRangeError(limitTo);
     return +this.dealRounding (limitTo, 1)
   }
 
   round (limitTo: number): number {
-    precisionRangeError(limitTo);
     return +this.dealRounding (limitTo, 0)
   }
 
   floor (limitTo: number): number {
-    precisionRangeError(limitTo);
     return +this.dealRounding (limitTo, -1)
   }
 
@@ -233,28 +232,25 @@ export class SafeFloat {
   }
 
   cutStr (limitTo: number, neat?: boolean): string{
-    return SafeFloat.neat (SafeFloat.cut(this.value.string, limitTo), neat);
+    return SafeFloat.neat (SafeFloat.slice(this.value.string, limitTo), neat);
   }
 
   cut (limitTo: number): number{
-    return +SafeFloat.cut(this.value.string, limitTo);
+    return +SafeFloat.slice(this.value.string, limitTo);
   }
 
   mask (): string {
     return SafeFloat.mask (this.value.string);
   }
 
-
   toFixed (limitTo: number, rounding: RoundingType = 0, mask = false): string {
     precisionRangeError(limitTo);
-    let value = this.dealRounding (limitTo, rounding);
-    if (limitTo !== 0 ){
-      value += ((SafeFloat.hasPoint(value)? '' : '.') + SafeFloat.repeatZero(limitTo - lengthBelowPoint(value)));
-    }
+    let value = SafeFloat.slice(this.dealRounding (limitTo, rounding), limitTo);
     return mask ? SafeFloat.mask (value) : value;
   }
 
   private dealRounding (limitTo: number, rounding: RoundingType): string {
+    precisionRangeError(limitTo);
     let num: number;
 
     if ( limitTo === 0 ) {

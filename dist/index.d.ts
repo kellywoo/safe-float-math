@@ -27,7 +27,7 @@ export declare class SafeFloat {
     static trimZero(str: string): string;
     static neat(str: string, should?: boolean): string;
     static hasPoint(str: string): boolean;
-    static cut(str: string, limitTo: number): string;
+    static slice(str: string, limitTo: number): string;
     toNumber(): number;
     ceil(limitTo: number): number;
     round(limitTo: number): number;
