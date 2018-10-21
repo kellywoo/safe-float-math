@@ -172,7 +172,7 @@ var SafeFloat = /** @class */ (function () {
     SafeFloat.hasPoint = function (str) {
         return /\./.test(str);
     };
-    SafeFloat.slice = function (str, limitTo) {
+    SafeFloat.cut = function (str, limitTo) {
         precisionRangeError(limitTo);
         return limitTo === 0 ?
             str.replace(new RegExp("(\\.\\d*$)"), '') :
@@ -203,10 +203,10 @@ var SafeFloat = /** @class */ (function () {
         return this.value.string;
     };
     SafeFloat.prototype.cutStr = function (limitTo, neat) {
-        return SafeFloat.neat(SafeFloat.slice(this.value.string, limitTo), neat);
+        return SafeFloat.neat(SafeFloat.cut(this.value.string, limitTo), neat);
     };
     SafeFloat.prototype.cut = function (limitTo) {
-        return +SafeFloat.slice(this.value.string, limitTo);
+        return +SafeFloat.cut(this.value.string, limitTo);
     };
     SafeFloat.prototype.mask = function () {
         return SafeFloat.mask(this.value.string);
@@ -215,7 +215,7 @@ var SafeFloat = /** @class */ (function () {
         if (rounding === void 0) { rounding = 0; }
         if (mask === void 0) { mask = false; }
         precisionRangeError(limitTo);
-        var value = SafeFloat.slice(this.dealRounding(limitTo, rounding), limitTo);
+        var value = SafeFloat.cut(this.dealRounding(limitTo, rounding), limitTo);
         return mask ? SafeFloat.mask(value) : value;
     };
     SafeFloat.prototype.dealRounding = function (limitTo, rounding) {

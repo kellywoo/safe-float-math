@@ -192,7 +192,7 @@ export class SafeFloat {
     return /\./.test (str);
   }
 
-  static slice (str: string, limitTo: number): string {
+  static cut (str: string, limitTo: number): string {
     precisionRangeError(limitTo);
     return limitTo === 0 ?
       str.replace (new RegExp (`(\\.\\d*$)`), '') :
@@ -232,11 +232,11 @@ export class SafeFloat {
   }
 
   cutStr (limitTo: number, neat?: boolean): string{
-    return SafeFloat.neat (SafeFloat.slice(this.value.string, limitTo), neat);
+    return SafeFloat.neat (SafeFloat.cut(this.value.string, limitTo), neat);
   }
 
   cut (limitTo: number): number{
-    return +SafeFloat.slice(this.value.string, limitTo);
+    return +SafeFloat.cut(this.value.string, limitTo);
   }
 
   mask (): string {
@@ -245,7 +245,7 @@ export class SafeFloat {
 
   toFixed (limitTo: number, rounding: RoundingType = 0, mask = false): string {
     precisionRangeError(limitTo);
-    let value = SafeFloat.slice(this.dealRounding (limitTo, rounding), limitTo);
+    let value = SafeFloat.cut(this.dealRounding (limitTo, rounding), limitTo);
     return mask ? SafeFloat.mask (value) : value;
   }
 
