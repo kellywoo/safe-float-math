@@ -85,5 +85,9 @@ describe('get safeFloat function test', () => {
     var result = new SafeFloat(0.123456).cutStr(0);
     expect(result).to.equal('0');
   });
+  it('should return new SafeFloat(0.123456).cutStr(0) => 0', () => {
+    var result = new SafeFloat(0.123456, 6).toString();
+    expect(result).to.equal('0.000000123456');
+  });
 });
 

@@ -32,6 +32,10 @@ var getIntAndPrecision = function (num, precision) {
     return [int, precision - exp, sign];
 };
 var convertToStrNumber = function (int, precision, sign) {
+    // in case 0
+    if (int === 0) {
+        return '0';
+    }
     var str = '' + int;
     var signChar = sign === -1 ? '-' : '';
     if (precision !== 0) {

@@ -38,6 +38,11 @@ const getIntAndPrecision = (num: number, precision = 0): [ number, number, SignT
 };
 
 const convertToStrNumber = (int: number, precision: number, sign: SignType): string => {
+
+  // in case 0
+  if (int === 0) {
+    return '0';
+  }
   let str: string = '' + int;
   let signChar = sign === -1 ? '-' : '';
   if ( precision !== 0 ) {
@@ -51,7 +56,7 @@ const convertToStrNumber = (int: number, precision: number, sign: SignType): str
       str += SafeFloat.repeatZero (Math.abs (precision));
     }
   }
-  return signChar + str;
+  return signChar + str
 };
 
 
