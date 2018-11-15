@@ -86,16 +86,16 @@ SafeFloat.strRepeat('h',3)
 
 | instance method | description |
 | ------------- | ------------- |
-|toString()| return string not tempered|
+|toString(n?)| return string not tempered<br />but if n provided and n >= digits below zero<br /> :return string fills with '0' upto n-th digit <br />n < digits<br />: return string not tempered |
 |toNumber()| return number not tempered|
 |floor(digit)| return number floored by n-th digit below zero|
-|floorStr(digit, neat)| return string floored by n-th digit below zero|
+|floorStr(digit, neat?)| return string floored by n-th digit below zero|
 |round(digit)| return number rounded by n-th digit below zero|
-|roundStr(digit, neat)| return string rounded by n-th digit below zero|
+|roundStr(digit, neat?)| return string rounded by n-th digit below zero|
 |ceil(digit)| return number ceiled by n-th digit below zero|
-|ceilStr(digit, neat)| return string ceiled by n-th digit below zero|
+|ceilStr(digit, neat?)| return string ceiled by n-th digit below zero|
 |cut(digit)| return number sliced by n-th digit below zero|
-|cutStr(digit, neat)|  return string sliced by n-th digit below zero|
+|cutStr(digit, neat?)|  return string sliced by n-th digit below zero|
 |mask(str)| return result of toString() with mask|
 |toFixed(digit, rounding, mask)| return string after tempered</ br>rounding(1:ceil, 0: rounding, -1: floor)|
 |plus(x)| same as SafeFloat.calculate(this,x,'+')|
@@ -118,6 +118,11 @@ const sf1 = new SafeFloat(1123.000233)
 
 sf1.toString() 
 // return '1123.000233'
+sf1.toString(2)
+// return '1123.000233'
+sf1.toString(8)
+// return '1123.00023300'
+
 
 sf1.toNumber() 
 // return 1123.000233

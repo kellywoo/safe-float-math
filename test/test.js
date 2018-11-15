@@ -28,6 +28,10 @@ describe('get safeFloat function test', () => {
     var result = new SafeFloat(-81235678.87).mask();
     expect(result).to.equal('-81,235,678.87');
   });
+  it(`should return new SafeFloat(-81235678.87).mask(5) => -81,235,678.87000`, () => {
+    var result = new SafeFloat(-81235678.87).mask(5);
+    expect(result).to.equal('-81,235,678.87000');
+  });
   it(`should return new SafeFloat(2.9999).floor(3) => 2.999`, () => {
     var result = new SafeFloat(2.9999).floor(3);
     expect(result).to.equal(2.999);
@@ -85,9 +89,25 @@ describe('get safeFloat function test', () => {
     var result = new SafeFloat(0.123456).cutStr(0);
     expect(result).to.equal('0');
   });
-  it('should return new SafeFloat(0.123456).cutStr(0) => 0', () => {
+  it('should return new SafeFloat(123456.123).floorMask(4, true) => 0', () => {
+    var result = new SafeFloat(123456.123).floorMask(4);
+    expect(result).to.equal('123,456.1230');
+  });
+  it('should return new SafeFloat(0.123456, 6).toString() => 0.000000123456', () => {
     var result = new SafeFloat(0.123456, 6).toString();
     expect(result).to.equal('0.000000123456');
+  });
+  it('should return new SafeFloat(0.123456).toString(2) => 0.123456', () => {
+    var result = new SafeFloat(0.123456).toString(2);
+    expect(result).to.equal('0.123456');
+  });
+  it('should return new SafeFloat(0.123456).toString(9) => 0.123456000', () => {
+    var result = new SafeFloat(0.123456).toString(9);
+    expect(result).to.equal('0.123456000');
+  });
+  it('should return new SafeFloat(123456).toString(3) => 123456.000', () => {
+    var result = new SafeFloat(123456).toString(3);
+    expect(result).to.equal('123456.000');
   });
 });
 

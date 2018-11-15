@@ -161,11 +161,18 @@ export class SafeFloat {
     return str;
   }
 
-  static mask (_num: any) {
-    let num: string;
-    num = SafeFloat.isNumber (_num) ? new SafeFloat (<number>_num).value.string : _num;
-    const sign = num[ 0 ] === '-' ? '-' : '';
-    const strArr = sign ? num.slice (1).split ('.') : num.split ('.');
+  static mask (_num: number | string): string {
+    return SafeFloat.comma(<string>(SafeFloat.isNumber (_num) ? new SafeFloat (<number>_num).value.string : _num));
+  }
+
+  static comma (num: string): string {
+    let sign: string = '', strArr;
+    if(num[ 0 ] === '-') {
+      sign = '-';
+      strArr = num.slice (1).split ('.')
+    } else {
+      strArr = num.split ('.')
+    }
     return sign + strArr[ 0 ].replace (/\B(?=(\d{3})+(?!\d))/g, ',') + (strArr[ 1 ] ? ('.' + strArr[ 1 ]) : '');
   }
 
@@ -220,6 +227,10 @@ export class SafeFloat {
     return +this.dealRounding (limitTo, -1)
   }
 
+  cut (limitTo: number): number{
+    return +SafeFloat.cut(this.value.string, limitTo);
+  }
+
   ceilStr (limitTo: number, neat?: boolean): string {
     return SafeFloat.neat (this.toFixed (limitTo, 1), neat);
   }
@@ -232,20 +243,43 @@ export class SafeFloat {
     return SafeFloat.neat (this.toFixed (limitTo, -1), neat);
   }
 
-  toString (): string {
-    return this.value.string;
-  }
-
   cutStr (limitTo: number, neat?: boolean): string{
     return SafeFloat.neat (SafeFloat.cut(this.value.string, limitTo), neat);
   }
 
-  cut (limitTo: number): number{
-    return +SafeFloat.cut(this.value.string, limitTo);
+  ceilMask (limitTo: number, neat?: boolean): string {
+    return SafeFloat.comma(SafeFloat.neat (this.toFixed (limitTo, 1), neat));
   }
 
-  mask (): string {
-    return SafeFloat.mask (this.value.string);
+  roundMask (limitTo: number, neat?: boolean): string {
+    return SafeFloat.comma(SafeFloat.neat (this.toFixed (limitTo, 0), neat));
+  }
+
+  floorMask (limitTo: number, neat?: boolean): string {
+    return SafeFloat.comma(SafeFloat.neat (this.toFixed (limitTo, -1), neat));
+  }
+
+  cutMask (limitTo: number, neat?: boolean): string{
+    return SafeFloat.comma(SafeFloat.neat (SafeFloat.cut(this.value.string, limitTo), neat));
+  }
+
+  toString (limitTo?: number): string {
+    const value = this.value.string;
+    if(SafeFloat.isNumber(<number>limitTo) && <number>limitTo >= 0 && isFinite(<number>limitTo)) {
+      // NaN always return false when it is compared with other number
+      const diff = lengthBelowPoint(value);
+      if ( diff >= <number>limitTo) {
+        return value;
+      } else {
+        return value + addPoint(value) + SafeFloat.repeatZero(<number>limitTo - diff);
+      }
+    } else {
+      return value;
+    }
+  }
+
+  mask (limitTo?: number): string {
+    return SafeFloat.comma(SafeFloat.mask (this.toString(limitTo)));
   }
 
   toFixed (limitTo: number, rounding: RoundingType = 0, mask = false): string {

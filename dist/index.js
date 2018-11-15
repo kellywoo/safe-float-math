@@ -149,10 +149,17 @@ var SafeFloat = /** @class */ (function () {
         return str;
     };
     SafeFloat.mask = function (_num) {
-        var num;
-        num = SafeFloat.isNumber(_num) ? new SafeFloat(_num).value.string : _num;
-        var sign = num[0] === '-' ? '-' : '';
-        var strArr = sign ? num.slice(1).split('.') : num.split('.');
+        return SafeFloat.comma((SafeFloat.isNumber(_num) ? new SafeFloat(_num).value.string : _num));
+    };
+    SafeFloat.comma = function (num) {
+        var sign = '', strArr;
+        if (num[0] === '-') {
+            sign = '-';
+            strArr = num.slice(1).split('.');
+        }
+        else {
+            strArr = num.split('.');
+        }
         return sign + strArr[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (strArr[1] ? ('.' + strArr[1]) : '');
     };
     SafeFloat.plus = function (x, y) {
@@ -194,6 +201,9 @@ var SafeFloat = /** @class */ (function () {
     SafeFloat.prototype.floor = function (limitTo) {
         return +this.dealRounding(limitTo, -1);
     };
+    SafeFloat.prototype.cut = function (limitTo) {
+        return +SafeFloat.cut(this.value.string, limitTo);
+    };
     SafeFloat.prototype.ceilStr = function (limitTo, neat) {
         return SafeFloat.neat(this.toFixed(limitTo, 1), neat);
     };
@@ -203,17 +213,39 @@ var SafeFloat = /** @class */ (function () {
     SafeFloat.prototype.floorStr = function (limitTo, neat) {
         return SafeFloat.neat(this.toFixed(limitTo, -1), neat);
     };
-    SafeFloat.prototype.toString = function () {
-        return this.value.string;
-    };
     SafeFloat.prototype.cutStr = function (limitTo, neat) {
         return SafeFloat.neat(SafeFloat.cut(this.value.string, limitTo), neat);
     };
-    SafeFloat.prototype.cut = function (limitTo) {
-        return +SafeFloat.cut(this.value.string, limitTo);
+    SafeFloat.prototype.ceilMask = function (limitTo, neat) {
+        return SafeFloat.comma(SafeFloat.neat(this.toFixed(limitTo, 1), neat));
     };
-    SafeFloat.prototype.mask = function () {
-        return SafeFloat.mask(this.value.string);
+    SafeFloat.prototype.roundMask = function (limitTo, neat) {
+        return SafeFloat.comma(SafeFloat.neat(this.toFixed(limitTo, 0), neat));
+    };
+    SafeFloat.prototype.floorMask = function (limitTo, neat) {
+        return SafeFloat.comma(SafeFloat.neat(this.toFixed(limitTo, -1), neat));
+    };
+    SafeFloat.prototype.cutMask = function (limitTo, neat) {
+        return SafeFloat.comma(SafeFloat.neat(SafeFloat.cut(this.value.string, limitTo), neat));
+    };
+    SafeFloat.prototype.toString = function (limitTo) {
+        var value = this.value.string;
+        if (SafeFloat.isNumber(limitTo) && limitTo >= 0 && isFinite(limitTo)) {
+            // NaN always return false when it is compared with other number
+            var diff = lengthBelowPoint(value);
+            if (diff >= limitTo) {
+                return value;
+            }
+            else {
+                return value + addPoint(value) + SafeFloat.repeatZero(limitTo - diff);
+            }
+        }
+        else {
+            return value;
+        }
+    };
+    SafeFloat.prototype.mask = function (limitTo) {
+        return SafeFloat.comma(SafeFloat.mask(this.toString(limitTo)));
     };
     SafeFloat.prototype.toFixed = function (limitTo, rounding, mask) {
         if (rounding === void 0) { rounding = 0; }
