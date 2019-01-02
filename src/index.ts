@@ -56,7 +56,7 @@ const convertToStrNumber = (int: number, precision: number, sign: SignType): str
       str += SafeFloat.repeatZero (Math.abs (precision));
     }
   }
-  return signChar + str
+  return signChar + str;
 };
 
 
@@ -189,7 +189,11 @@ export class SafeFloat {
   }
 
   static div (x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat {
-    return SafeFloat.calculate (x, y, '/');
+    if ((y instanceof SafeFloat && y.toNumber() !==0) || (+y!==0)) {
+      return SafeFloat.calculate (x, y, '/');
+    } else {
+      throw createError('you can\'t divide number by zero.');
+    }
   }
 
   static trimZero (str: string): string {
@@ -283,6 +287,9 @@ export class SafeFloat {
   }
 
   toFixed (limitTo: number, rounding: RoundingType = 0, mask = false): string {
+    if (!limitTo && limitTo !==0) {
+      return mask ? SafeFloat.mask (this.toString()): this.toString();
+    }
     precisionRangeError(limitTo);
     let value = SafeFloat.cut(this.dealRounding (limitTo, rounding), limitTo);
     return mask ? SafeFloat.mask (value) : value;

@@ -109,5 +109,16 @@ describe('get safeFloat function test', () => {
     var result = new SafeFloat(123456).toString(3);
     expect(result).to.equal('123456.000');
   });
+  it('should return new SafeFloat(123.45600).floorStr() => 123.456', () => {
+    var result = new SafeFloat(123.45600).floorStr();
+    expect(result).to.equal('123.456');
+  });
+  it('should throw error', () => {
+    try {
+      expect(1).to.equal(new SafeFloat(123456).div(new SafeFloat(0)));
+    } catch(e) {
+      expect(1).to.equal(1)
+    }
+  });
 });
 

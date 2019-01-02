@@ -172,7 +172,12 @@ var SafeFloat = /** @class */ (function () {
         return SafeFloat.calculate(x, y, '*');
     };
     SafeFloat.div = function (x, y) {
-        return SafeFloat.calculate(x, y, '/');
+        if ((y instanceof SafeFloat && y.toNumber() !== 0) || (+y !== 0)) {
+            return SafeFloat.calculate(x, y, '/');
+        }
+        else {
+            throw createError('you can\'t divide number by zero.');
+        }
     };
     SafeFloat.trimZero = function (str) {
         return SafeFloat.hasPoint(str) ? str.replace(/(\.?)0*$/, '') : str;
@@ -250,6 +255,9 @@ var SafeFloat = /** @class */ (function () {
     SafeFloat.prototype.toFixed = function (limitTo, rounding, mask) {
         if (rounding === void 0) { rounding = 0; }
         if (mask === void 0) { mask = false; }
+        if (!limitTo && limitTo !== 0) {
+            return mask ? SafeFloat.mask(this.toString()) : this.toString();
+        }
         precisionRangeError(limitTo);
         var value = SafeFloat.cut(this.dealRounding(limitTo, rounding), limitTo);
         return mask ? SafeFloat.mask(value) : value;
