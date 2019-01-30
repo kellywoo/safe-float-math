@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.js",
   "scripts": {
-    "test": "mocha --reporter spec",
+    "test": "jest test/test",
     "build": "tsc",
     "start": "tsc -w"
   },
@@ -20,8 +20,7 @@
     "url": "https://github.com/kellywoo/safe-float-math/issues"
   },
   "devDependencies": {
-    "chai": "^4.1.2",
-    "mocha": "^5.2.0",
+    "jest": "^23.6.0",
     "typescript": "^3.0.3"
   }
 }
