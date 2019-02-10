@@ -2,12 +2,12 @@ export declare type SafeFloatAcceptableType = number | string | SafeFloat;
 export declare type RoundingType = 0 | 1 | -1 | -2;
 export declare type SignType = -1 | 1;
 interface SafeFactor {
-    i: number[];
-    exp: {
-        expI: string;
-        expP: number;
-    };
+    i: string;
     string?: string;
+    c?: {
+        ci: number[];
+        cp: number;
+    };
     p: number;
     s: SignType;
 }
@@ -22,15 +22,63 @@ export declare class SafeFloatHelper {
     static comma(num: any): string;
 }
 export declare class SafeFloat {
+    static MAX_NE: number;
     safeFactor: SafeFactor;
     readonly string: string;
     isSafeFloat(a: any): boolean;
-    constructor(value: any, p?: number);
+    update(sf: SafeFactor): void;
+    constructor(value?: any, p?: number);
     static create(a: SafeFloatAcceptableType): SafeFloat;
     static mask(_num: number | string): string;
     static plus(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
     static minus(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
     static mult(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
+    static copy(config: {}): {
+        new (...args: any[]): {
+            safeFactor: SafeFactor;
+            readonly string: string;
+            isSafeFloat(a: any): boolean;
+            update(sf: SafeFactor): void;
+            toNumber(): number;
+            ceil(upto: number): number;
+            round(upto: number): number;
+            floor(upto: number): number;
+            cut(upto: number): number;
+            ceilStr(upto: number, neat?: boolean | undefined): string;
+            roundStr(upto: number, neat?: boolean | undefined): string;
+            floorStr(upto: number, neat?: boolean | undefined): string;
+            cutStr(upto: number, neat?: boolean | undefined): string;
+            ceilMask(upto: number, neat?: boolean | undefined): string;
+            roundMask(upto: number, neat?: boolean | undefined): string;
+            floorMask(upto: number, neat?: boolean | undefined): string;
+            cutMask(upto: number, neat?: boolean | undefined): string;
+            toString(upto?: number): string;
+            toExp(): string;
+            ceilSafe(upto: number): SafeFloat;
+            roundSafe(upto: number): SafeFloat;
+            floorSafe(upto: number): SafeFloat;
+            cutSafe(upto: number): SafeFloat;
+            mask(upto?: number | undefined, neat?: boolean): string;
+            roundingStr(upto?: number, rounding?: RoundingType): string;
+            roundingSafeFloat(upto?: number, rounding?: RoundingType): SafeFloat;
+            handleRounding(upto?: number, rounding?: RoundingType): SafeFactor;
+            plus(x: SafeFloatAcceptableType): SafeFloat;
+            minus(x: SafeFloatAcceptableType): SafeFloat;
+            mult(x: SafeFloatAcceptableType): SafeFloat;
+            div(x: SafeFloatAcceptableType): SafeFloat;
+            pow(n: any): void;
+            absCompare(x: SafeFloatAcceptableType): number;
+            compare(x: SafeFloatAcceptableType): number;
+        };
+        MAX_NE: number;
+        create(a: SafeFloatAcceptableType): SafeFloat;
+        mask(_num: string | number): string;
+        plus(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
+        minus(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
+        mult(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
+        copy(config: {}): any;
+        div(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
+    };
     static div(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat;
     toNumber(): number;
     ceil(upto: number): number;
@@ -46,11 +94,21 @@ export declare class SafeFloat {
     floorMask(upto: number, neat?: boolean): string;
     cutMask(upto: number, neat?: boolean): string;
     toString(upto?: number): string;
+    toExp(): string;
+    ceilSafe(upto: number): SafeFloat;
+    roundSafe(upto: number): SafeFloat;
+    floorSafe(upto: number): SafeFloat;
+    cutSafe(upto: number): SafeFloat;
     mask(upto?: number, neat?: boolean): string;
-    handleRounding(upto?: number, rounding?: RoundingType): string;
+    roundingStr(upto?: number, rounding?: RoundingType): string;
+    roundingSafeFloat(upto?: number, rounding?: RoundingType): SafeFloat;
+    handleRounding(upto?: number, rounding?: RoundingType): SafeFactor;
     plus(x: SafeFloatAcceptableType): SafeFloat;
     minus(x: SafeFloatAcceptableType): SafeFloat;
     mult(x: SafeFloatAcceptableType): SafeFloat;
     div(x: SafeFloatAcceptableType): SafeFloat;
+    pow(n: any): void;
+    absCompare(x: SafeFloatAcceptableType): number;
+    compare(x: SafeFloatAcceptableType): number;
 }
 export {};

@@ -24,7 +24,7 @@ const ZEROES = [
 
 // Number.MAX_SAFE_INTEGER support 16 digit and consider multiply, take half of it
 const BIT = 8;
-const DIGIT = +('1e' + BIT);
+const DIGIT = 1e+8;
 const STRING_PLUS_ONE = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 
 export type SafeFloatAcceptableType = number | string | SafeFloat
@@ -32,9 +32,9 @@ export type RoundingType = 0 | 1 | -1 | -2
 export type SignType = -1 | 1
 
 interface SafeFactor {
-  i: number[];
-  exp: {expI: string, expP: number};
+  i: string; // exponential format but without dot 1.2345e+12=> 12345
   string?: string;
+  c?: {ci: number[], cp: number}
   p: number;
   s: SignType;
 }
@@ -92,28 +92,32 @@ export class SafeFloatHelper {
 const createError = (msg: string) => new Error(msg);
 
 const precisionRangeError = (upto: number) => {
-  if (upto < -8 || upto > 100) {
-    throw createError('precision should be between -8 to 100')
+  if (upto < -50 || upto > 50) {
+    throw createError('precision should be between -50 to 50')
   }
 };
 
 function expToFixed(exp: string): string {
-  let [num, e] = exp.split('e');
-  let pd = SafeFloatHelper.lengthBelowPoint(num);
-  let p = +e - pd;
-  num = num.replace('.', '');
+  const m = /^([+-])?(\d+)(\.(\d*))?(e([+-]?\d+))$/.exec(exp);
+  if (!m) {
+    // no exp format
+    return exp;
+  }
+  let d = m[4] || '', s = m[1] || '', str;
+  let num = m[2] + d, p = +m[6] - d.length;
 
   if (p === 0) {
-    return num;
+    str = num;
   } else if (p > 0) {
-    return num + SafeFloatHelper.repeatZero(p);
+    str = num + SafeFloatHelper.repeatZero(p);
   } else {
     if (-p >= num.length) {
-      return '0.' + SafeFloatHelper.repeatZero(-num.length - p) + num;
+      str = '0.' + SafeFloatHelper.repeatZero(-num.length - p) + num;
     } else {
-      return num.slice(0, p) + '.' + num.slice(p);
+      str = num.slice(0, p) + '.' + num.slice(p);
     }
   }
+  return s + str
 };
 
 function comma(num: string): string {
@@ -122,6 +126,28 @@ function comma(num: string): string {
   return int.replace(/(\d)\B(?=(\d{3})+(?!\d))/g, '$1,') + decimal;
 };
 
+// ci: number array, cp: first index
+function grouping(sf: SafeFactor) {
+  let ep = getLastExp(sf);
+  let overflow = (BIT + (ep % BIT)) % BIT;
+  let int = sf.i + SafeFloatHelper.repeatZero(overflow);
+  let start = 0, end = int.length % BIT || BIT, piece;
+  let ci = [];
+  while (piece = int.slice(start, end)) {
+    ci.push(+piece);
+    start = end;
+    end += BIT;
+  }
+  let i = -1, cp;
+  while (ci[++i] === 0) {
+  }
+  cp = Math.floor(sf.p / BIT);
+  if (i > 0) {
+    ci = ci.slice(i);
+    cp -= i
+  }
+  return {ci, cp: cp}
+}
 
 function calculate(n1: SafeFloatAcceptableType, n2: SafeFloatAcceptableType, op: string) {
   let x = SafeFloat.create(n1);
@@ -130,136 +156,121 @@ function calculate(n1: SafeFloatAcceptableType, n2: SafeFloatAcceptableType, op:
   const sfX: SafeFactor = x.safeFactor;
   const sfY: SafeFactor = y.safeFactor;
 
+  if (!sfX.c) {
+    sfX.c = grouping(sfX);
+  }
+  if (!sfY.c) {
+    sfY.c = grouping(sfY);
+  }
+
+  let sf;
   switch (op) {
     case '+':
-      return plus(sfX, sfY);
+      if (sfX.s !== sfY.s) {
+        sf = sfX.s > 0 ? minus(sfX, sfY) : minus(sfY, sfX);
+      } else {
+        sf = plus(sfX, sfY);
+      }
+      break;
     case '-':
-      return minus(sfX, sfY);
+      if (sfX.s != sfY.s) {
+        sf = sfX.s > 0 ? plus(sfX, sfY) : plus(sfY, sfX);
+      } else {
+        sf = minus(sfX, sfY)
+      }
+      break;
     case '*':
-      return mult(sfX, sfY);
+      if (!(isZero(sfX) && isZero(sfY))) {
+        sf = mult(sfX, sfY);
+      }
+      break;
     //case '/':
     // return new SafeFloat(div(sfX, sfY));
     default:
       throw createError('only +,-,*,/ are supported')
   }
+  return safeFactorToSafeFloat(sf);
 }
 
-function getInlineNumber(arr, start) {
-  let fc;
-  return arr[1] ? arr.reduce((str, unit) => {
-    let u = '' + unit;
-    return str + SafeFloatHelper.repeatZero(BIT - u.length) + u;
-  }, start): (start + SafeFloatHelper.repeatZero(BIT - (fc =''+arr[0]).length) + fc);
-
+function isZero(sf: SafeFactor){
+  return sf.i[0] === '0';
 }
 
+function getLastExp(sf: SafeFactor){
+  return sf.p - sf.i.length + 1
+}
 
-function increaseOne(str) {
-  let overFlow = '';
-  let i = str.length - 1;
-  let addedNumber = '';
-  for (; i >= 0; i--) {
-    if (str[i] === '.') {
-      addedNumber = '.' + addedNumber;
-      continue;
-    }
-    addedNumber = STRING_PLUS_ONE[str[i]] + addedNumber;
-    if (!(overFlow = addedNumber[0] === '0' ? '1' : '')) {
-      break;
-    }
+function seperateByBit(str) {
+  let start = 0;
+  let end = str.length % BIT || BIT;
+  const temp = [];
+  let piece;
+  while (piece = str.slice(start, end)) {
+    temp.push(+piece);
+    start = end;
+    end += BIT;
   }
-  return overFlow + str.slice(0, i) + addedNumber;
+  return temp;
 }
 
+// function pow (x:SafeFactor, n): SafeFactor {
+//   if (!x.c) {
+//     x.c = grouping(x);
+//   }
+//
+//   let i = n;
+//   let arr = n
+//   while((i=(i>>1) > 1)) {
+//
+//   }
+//
+//   const xi = x.c.ci;
+//   const yi = x.c.ci;
+//   const p = x.c.cp * 2;
+//   const s = x.s * x.s;
+//   const newObj = [];
+//   for (let i = xi.length - 1; i >= 0; i--) {
+//     for (let j = yi.length - 1; j >= 0; j--) {
+//       let xk = xi[i];
+//       let yk = yi[j];
+//       newObj[i + j] = (newObj[i + j] || 0) + (xk * yk);
+//     }
+//   }
+// }
 
-const mult = (x: SafeFactor, y: SafeFactor) => {
-  const xi = x.i.slice();
-  const yi = y.i.slice();
-  const p = x.p + y.p;
-  const sign = x.s * y.s;
+function mult(x: SafeFactor, y: SafeFactor): SafeFactor {
+  const xi = x.c.ci;
+  const yi = y.c.ci;
+  const p = x.c.cp + y.c.cp;
+  const s = x.s * y.s;
   const newObj = [];
-  for (let i = xi.length -1; i >= 0; i--) {
-    for (let j = yi.length -1; j >= 0; j--) {
+  for (let i = xi.length - 1; i >= 0; i--) {
+    for (let j = yi.length - 1; j >= 0; j--) {
       let xk = xi[i];
       let yk = yi[j];
       newObj[i + j] = (newObj[i + j] || 0) + (xk * yk);
     }
   }
-  return normalize(newObj, sign, p);
+  return normalize(newObj, s, p);
 };
 
-const dominoIncrease = (i, p, s) => {
-  let overflow = 0;
-  const c = [];
-  for(let l = i.length -1; l>=0; l--){
-    let t = i[l] + overflow;
-    if (t >= 0) {
-      overflow = ~~(t / DIGIT);
-    } else {
-      overflow = -1;
-      t += DIGIT;
-    }
-    c[l] = t % DIGIT;
+//  sign x, y are always same
+function plus(x: SafeFactor, y: SafeFactor): SafeFactor {
+  const xi = x.c.ci;// 0,-1 => 0 i-p
+  const yi = y.c.ci; // 1,0, -1 => 10 i-p
+  const max = Math.max(x.c.cp, y.c.cp);
+  const min = Math.min(x.c.cp - xi.length + 1, y.c.cp - yi.length + 1);
+  const newObj = [];
+  for (let i = max; i >= min; i--) {
+    let xt = xi[x.c.cp - i] || 0;
+    let yt = yi[y.c.cp - i] || 0;
+    newObj[max - i] = xt + yt;
   }
-
-  if (overflow) {
-    c.unshift(overflow);
-    p += 1;
-  }
-  let hasExtra = true, str ='', expP, expI, exLen;
-  for (let j = c.length -1; j > 0; j--) {
-    if(c[j] === 0 && hasExtra) {
-      c.pop();
-    } else {
-      hasExtra = false;
-      str = '' + c[j];
-      expI = SafeFloatHelper.repeatZero(BIT-str.length) + str;
-    }
-  }
-  expI = ''+c[0] + str;
-  exLen = expI.length;
-  expI = expI.replace(/0+$/, '');
-  expP = BIT * (p - c.length + 1) + exLen - expI.length;
-  return {i:c, p, s, exp: {expI: expI || '0', expP}}
+  return normalize(newObj, x.s, max);
 };
 
-//  receive reversed array since calculate from the smallest digit
-const normalize = (i: number [], s: SignType, p: number): SafeFloat => {
-  let SF = new SafeFloat('0');
-  SF.safeFactor = dominoIncrease(i, p, s);
-  return SF;
-};
-
-
-function plus(x: SafeFactor, y: SafeFactor) {
-  if (x.s !== y.s) {
-    switch (absCompare(x, y)) {
-      case 1:
-        return minus(x, <SafeFactor>{...y, s: x.s});
-      case -1:
-        return minus(y, <SafeFactor>{...x, s: y.s});
-      default:
-        return '0';
-    }
-  } else {
-    const xi = x.i;
-    const yi = y.i;
-    const max = Math.max(x.p, y.p);
-    const min = Math.min(x.p - xi.length + 1, y.p - yi.length + 1);
-    const newObj = [];
-    for (let i = max; i >= min; i--) {
-      let xt = xi[x.p - i] || 0;
-      let yt = yi[y.p - i] || 0;
-      newObj[ max - i] = xt + yt;
-    }
-    return normalize(newObj, x.s, max);
-  }
-};
-
-function minus(x: SafeFactor, y: SafeFactor) {
-  if (x.s !== y.s) {
-    return plus(x, <SafeFactor>{...y, s: x.s});
-  }
+// x is always + , y is always -
+function minus(x: SafeFactor, y: SafeFactor): SafeFactor {
   let big, small, s: SignType = x.s;
   switch (absCompare(x, y)) {
     case 1:
@@ -272,18 +283,20 @@ function minus(x: SafeFactor, y: SafeFactor) {
       s *= -1;
       break;
     default:
-      return '0';
+      // calculate will prepare zero for undefined;
+      return undefined;
   }
 
-  const bi = big.i;
-  const si = small.i;
-  const max = Math.max(big.p, small.p);
-  const min = Math.min(big.p - bi.length + 1, small.p - si.length + 1);
+  const bi = big.c.ci;
+  const si = small.c.ci;
+  const max = Math.max(big.c.cp, small.c.cp);
+  const min = Math.min(big.c.cp - bi.length + 1, small.c.cp - si.length + 1);
   const newObj = [];
   for (let i = max; i >= min; i--) {
-    let bt = bi[big.p - i] || 0;
-    let st = si[small.p - i] || 0;
-    newObj[max-i] = bt - st;
+    let bt = bi[big.c.cp - i] || 0;
+    let st = si[small.c.cp - i] || 0;
+    newObj[max - i] = bt - st;
+
   }
   return normalize(newObj, s, max);
 };
@@ -292,59 +305,98 @@ const div = (x: SafeFactor, y: SafeFactor) => {
 
 }
 
+const flattenGroup = ({arr, p, s}) => {
+  let overflow = 0;
+  for (let j = arr.length - 1; j >= 0; j--) {
+    let t = arr[j] + overflow;
+    if (t >= 0) {
+      overflow = ~~(t / DIGIT);
+    } else {
+      overflow = -1;
+      t += DIGIT;
+    }
+    arr[j] = t % DIGIT;
+  }
+  if (overflow) {
+    arr.unshift(overflow);
+    p += 1;
+  }
+  return {arr, p, s};
+}
+
+const normalize = (arr: number [], s: SignType, p: number): SafeFactor => {
+  let flat = flattenGroup({arr, s, p});
+  let i = '', fl;
+  let len = flat.arr.length
+  for (let j = 0; j < len; j++) {
+    let str = '' + flat.arr[j];
+    if (j > 0) {
+      str = SafeFloatHelper.repeatZero(BIT - str.length) + str;
+    } else {
+      fl = str.length;
+    }
+    i += str;
+  }
+  i = i.replace(/0+$/, '');
+  flat.p = (flat.p * BIT) + fl - 1;
+  return {i, p: flat.p, s};
+};
+
+
 function absCompare(a: SafeFactor, b: SafeFactor): number {
-  let bigger;
   if (a.p > b.p) {
-    bigger = 1;
+    return 1;
   } else if (a.p < b.p) {
-    bigger = -1;
+    return -1;
   } else {
-    bigger = 0;
-    const x = a.i;
-    const y = b.i;
-    const upto = Math.max(x.length, y.length);
-    for (let i = 0; i < upto; i++) {
-      const xi = x[i] || 0;
-      const yi = y[i] || 0;
-      if (xi > yi) {
-        bigger = 1;
-        break;
-      } else if (xi < yi) {
-        bigger = -1;
-        break;
-      }
+    if (a.i === b.i && a.p === b.p) {
+      return 0;
+    }
+    const upto = a.i.length > b.i.length ? b.i.length : a.i.length;
+    const x = +a.i.slice(0, upto);
+    const y = +b.i.slice(0, upto);
+    if (x > y) {
+      return 1;
+    } else if (y > x) {
+      return -1
+    } else {
+      return upto === a.i.length ? 1 : -1;
     }
   }
-  return bigger;
 };
 
 function keepPlaces(str: string, upto?: number): string {
-  if (upto == null || upto <= 0) {
+  if (upto <= 0 || upto == null) {
     return str;
   }
   let lengthBelowPoint = SafeFloatHelper.lengthBelowPoint(str);
   return str + (lengthBelowPoint > 0 ? '' : '.') + SafeFloatHelper.repeatZero(upto - lengthBelowPoint);
 }
 
-function neatPlaces(str) {
-  return /\./.test(str) ? str.replace(/\.?0+$/, '') : str;
-};
-
-function decidePlaceHolder(str: string, upto?: number, should = false): string {
-  return should ? neatPlaces(str) : keepPlaces(str, upto);
+function safeFactorToFixed({i, p, s}): string {
+  i = i[0]+ (i.length === 1 ? '' : i.replace(/0+$/, '').replace(/./, '.'));
+  const exp = (s < 0 ? '-' : '')
+    + i
+    + 'e' + (p < 0 ? '' : '+') + p;
+  return expToFixed(exp);
 }
 
-function safeExpToFixed({expI, expP}, s): string {
-  let exp = expI[0] + (expI.length === 1 ? '' : expI.replace(/./, '.')) + 'e' + (expP < 0 ? '' : '+') + (expP + expI.length - 1);
-  return (s < 0 ? '-' : '') + expToFixed(exp);
+function safeFactorToSafeFloat(sf?: SafeFactor){
+  const SF = new SafeFloat('0');
+  if (sf) {
+    SF.update({i:sf.i.replace(/(\d)0+$/, '$1') , p:sf.p, s:sf.s});
+  }
+  return SF;
 }
+
 
 export class SafeFloat {
+  static MAX_NE = 12; // last negative exp for constructor
   public safeFactor: SafeFactor;
 
   public get string() {
     if (!this.safeFactor.string) {
-      this.safeFactor.string = safeExpToFixed(this.safeFactor.exp, this.safeFactor.s)
+      this.safeFactor.string = safeFactorToFixed(this.safeFactor)
     }
     return this.safeFactor.string;
   }
@@ -353,42 +405,51 @@ export class SafeFloat {
     return a instanceof SafeFloat;
   }
 
-  constructor(value: any, p: number = 0) {
+  update(sf:SafeFactor){
+    this.safeFactor = {i: sf.i.slice(0, sf.p + SafeFloat.MAX_NE), p:sf.p, s:sf.s};
+  }
+
+  constructor(value: any = '0', p: number = 0) {
+    if (value === '0') {
+      // to create empty instance easy for calculate
+      this.update({i: '0', p: 0, s: 1});
+    }
     let num = '' + value;
 
-    let m = /^([+-])?(\d+)?(\.(\d*))?(e([+-]?\d+))?$/.exec(num);
-    if (!m || !/\d/.test(num)) {
-      throw createError('received not number format including NaN  and Infinite number');
+    let m = /^([+-])?([\d.]+)(?:[eE]([+-]?\d+))?$/.exec(num);
+    if (!m || m.indexOf('.') !== m.lastIndexOf('.')) {
+      throw createError('received not number format including NaN  and Infinite number: ' + value);
+    }
+    let len, int, t, j = 0;
+    t = m[2];
+    p = p * -1 + (+m[3] || 0);
+    len = t.length;
+    int = '0';
+
+    for (; j < len; j++) {
+      if (t[j] === '.') {
+        break;
+      } else {
+        if (int === '0') {
+          int = t[j]
+        } else {
+          int += t[j];
+          p++;
+        }
+      }
+    }
+    for (++j; j < len; j++) {
+      if(int ==='0') {
+        // case for 0.1 => 1e-1
+        p--;
+        int = t[j];
+      } else {
+        int += t[j]
+      }
     }
 
-    // m = [match, sign, int, dot+decimal, decimal, e[+-]precision, [+-]precision]
-    let s, int, d;
-
-    d = m[4] ? m[4] : '';
-    int = (m[2] ? m[2].replace(/^0+/, '') || '0' : '0') + d;
-    s = m[1] === '-' ? (int === '0' ? 1 : -1) : 1;
-    p = -p + (m[6] ? +m[6] : 0) - d.length;
-
-    // exponential form;
-    let rest, str, start, end, cp;
-    cp = p - (rest = (p < 0 ? BIT + (p % BIT) : p % BIT) % BIT);
-    str = int + ZEROES[rest];
-    start = 0;
-    end = str.length % BIT || BIT;
-    let piece;
-    const ci = [];
-    while (piece = str.slice(start, end)) {
-      ci.push(+piece);
-      start = end;
-      end += BIT;
-    }
-
-    // firstly make p BIT's multiple and add extra digits from int
-    // to make it exponential format
-    // ex) [2][3] => [2].[3]
-    cp = cp / BIT + (ci.length - 1);
-    // intArr[0]. intArr[1-n] form;
-    this.safeFactor = {i: ci, p: cp, s, exp: {expI: int, expP: p}}
+    int = int.replace(/0+$/, '') || (p = 0, '0');
+    this.update({i: int, p, s : m[1] === '-' ? -1 : 1});
   }
 
   static create(a: SafeFloatAcceptableType) {
@@ -415,6 +476,17 @@ export class SafeFloat {
     return calculate(x, y, '*');
   }
 
+  static copy(config: {}){
+    const c = {
+
+    }
+    return class extends SafeFloat {
+      constructor(...args){
+        super(...args);
+      }
+    }
+  }
+
   static div(x: SafeFloatAcceptableType, y: SafeFloatAcceptableType): SafeFloat {
     if ((y instanceof SafeFloat && y.toNumber() !== 0) || (+y !== 0)) {
       return calculate(x, y, '/');
@@ -428,95 +500,154 @@ export class SafeFloat {
   }
 
   ceil(upto: number): number {
-    return +this.handleRounding(upto, 1)
+    return +this.roundingStr(upto, 1)
   }
 
   round(upto: number): number {
-    return +this.handleRounding(upto, 0)
+    return +this.roundingStr(upto, 0)
   }
 
   floor(upto: number): number {
-    return +this.handleRounding(upto, -1)
+    return +this.roundingStr(upto, -1)
   }
 
   cut(upto: number): number {
-    return +this.handleRounding(upto, -2);
+    return +this.roundingStr(upto, -2);
   }
 
   ceilStr(upto: number, neat?: boolean): string {
-    return decidePlaceHolder(this.handleRounding(upto, 1), upto, neat);
+    let str = this.roundingStr(upto, 1);
+    return neat ? str : keepPlaces(str, upto);
   }
 
   roundStr(upto: number, neat?: boolean): string {
-    return decidePlaceHolder(this.handleRounding(upto, 0), upto, neat);
+    let str = this.roundingStr(upto, 0);
+    return neat ? str : keepPlaces(str, upto);
   }
 
   floorStr(upto: number, neat?: boolean): string {
-    return decidePlaceHolder(this.handleRounding(upto, -1), upto, neat);
+    let str = this.roundingStr(upto, -1);
+    console.log(str);
+    return neat ? str : keepPlaces(str, upto);
   }
 
   cutStr(upto: number, neat?: boolean): string {
-    return decidePlaceHolder(this.handleRounding(upto, -2), upto, neat);
+    let str = this.roundingStr(upto, 1 - 2);
+    return neat ? str : keepPlaces(str, upto);
   }
 
   ceilMask(upto: number, neat?: boolean): string {
-    return comma(decidePlaceHolder(this.handleRounding(upto, 1), upto, neat));
+    return comma(this.ceilStr(upto, neat));
   }
 
   roundMask(upto: number, neat?: boolean): string {
-    return comma(decidePlaceHolder(this.handleRounding(upto, 0), upto, neat));
+    return comma(this.roundStr(upto, neat));
   }
 
   floorMask(upto: number, neat?: boolean): string {
-    return comma(decidePlaceHolder(this.handleRounding(upto, -1), upto, neat));
+    return comma(this.floorStr(upto, neat));
   }
 
   cutMask(upto: number, neat?: boolean): string {
-    return comma(decidePlaceHolder(this.handleRounding(upto, -2), upto, neat));
+    return comma(this.cutStr(upto, neat));
   }
 
-  toString(upto?: number): string {
+  toString(upto: number = 0): string {
     return keepPlaces(this.string, upto);
+  }
+
+  toExp() {
+    const {s, i, p} = this.safeFactor;
+    return (s < 0 ? '-' : '')
+      + (i[0] + (i.length === 1 ? '' : i.replace(/./, '.')))
+      + 'e' + (p < 0 ? '' : '+') + p;
+  }
+
+  ceilSafe(upto: number): SafeFloat {
+    return this.roundingSafeFloat(upto, 1);
+  }
+
+  roundSafe(upto: number): SafeFloat {
+    return this.roundingSafeFloat(upto, 0);
+  }
+
+  floorSafe(upto: number): SafeFloat {
+    return this.roundingSafeFloat(upto, -1);
+  }
+
+  cutSafe(upto: number): SafeFloat {
+    return this.roundingSafeFloat(upto, -2);
   }
 
   mask(upto?: number, neat = false): string {
     let str = this.string;
-    str = decidePlaceHolder(str, upto, neat);
+    str = neat ? str : keepPlaces(str, upto);
     return comma(str);
   }
 
-  handleRounding(upto: number = 0, rounding: RoundingType = 0): string {
+  roundingStr(upto: number = 0, rounding: RoundingType = 0): string {
     precisionRangeError(upto);
+    // const {i, expP} = this.safeFactor.exp;
+    // displayed exp disits on abs
+    return safeFactorToFixed(this.handleRounding(upto, rounding));
+  }
+
+  roundingSafeFloat(upto: number = 0, rounding: RoundingType = 0): SafeFloat {
+    precisionRangeError(upto);
+    return safeFactorToSafeFloat(this.handleRounding(upto, rounding));
+  }
+
+  handleRounding(upto: number = 0, rounding: RoundingType = 0): SafeFactor {
+    let {s, i, p} = this.safeFactor;
+    const [es, ee] = [p, getLastExp(this.safeFactor)];
     // takes reversed exp number so mult -1 and exp that actually rounding happends
     const clue = (upto * -1) - 1;
-    const {expI, expP} = this.safeFactor.exp;
-    // displayed exp disits on abs
-    const [es, ee] = [expI.length + expP - 1, expP];
-    const s = this.safeFactor.s;
     // negative number takes opposite way to round make ceil always +1, floor ~~,
     rounding *= s;
 
-    // rounding happens smalled digit than displayed
+    // 1. rounding happens smalled digit than displayed
     if (clue < ee) {
-      return safeExpToFixed(this.safeFactor.exp, s);
+      return this.safeFactor;
     }
 
-    // rounding happens bigger digit than displayed
+    // 2. rounding happens bigger digit than displayed
     if (clue > es) {
-      if (rounding === 1 && expI[0] !== '0') {
-        return (s < 0 ? '-' : '') + '1e' + (expP < 0 ? '' : '+') + expP;
+      if (rounding === 1 && i[0] !== '0') {
+        p += 1;
+        return {s, i: '1', p};
       } else {
-        return '0';
+        return {s: 1, i: '0', p: 0};
       }
     }
+
+    // 3. the rest
     const point = es - clue;
-    const rest = expI.slice(point);
-    let safe = expI.slice(0, point);
+    const rest = i.slice(point) || '';
+    let safe = i.slice(0, point);
     let shouldIncrease = rounding === 1 || (rounding === 0 && (s > 0 && +rest[0] >= 5 || s < 0 && +rest[0] <= 5));
     if (shouldIncrease) {
-      safe = increaseOne(safe);
+      let overFlow, updated, mutated = '';
+      let l = safe.length;
+      while (l > 0) {
+        mutated = (updated = STRING_PLUS_ONE[safe[--l]]) + mutated;
+        if (!(overFlow = updated === '0' ? '1' : '')) {
+          break;
+        }
+      }
+      if (overFlow) {
+        p++
+      }
+      safe = overFlow + safe.slice(0, l) + mutated;
     }
-    return safeExpToFixed({expI: safe, expP: expP + rest.length}, s)
+
+    console.log(s, safe, p)
+
+    if (!safe) {
+      console.log('hello')
+      return {s: 1, i: '0', p: 0}
+    } else {
+      return {s, i: safe, p}
+    }
   }
 
   plus(x: SafeFloatAcceptableType): SafeFloat {
@@ -533,5 +664,36 @@ export class SafeFloat {
 
   div(x: SafeFloatAcceptableType): SafeFloat {
     return calculate(this, x, '/');
+  }
+
+  pow(n){
+    let x = n;
+    let j = [];
+    while((x = (x >> 1)) > 1) {
+      j.push()
+    }
+
+  }
+
+  absCompare(x: SafeFloatAcceptableType) {
+    const xs = SafeFloat.create(x);
+    return absCompare(this.safeFactor, xs.safeFactor);
+  }
+
+  compare(x: SafeFloatAcceptableType) {
+    const xs = SafeFloat.create(x);
+    // different sign
+    if (this.safeFactor.s > xs.safeFactor.s) {
+      return 1;
+    }
+    if (this.safeFactor.s < xs.safeFactor.s) {
+      return -1
+    }
+    // same sign
+    if (this.safeFactor.s > 0) {
+      return absCompare(this.safeFactor, xs.safeFactor);
+    } else {
+      return absCompare(xs.safeFactor, this.safeFactor);
+    }
   }
 }

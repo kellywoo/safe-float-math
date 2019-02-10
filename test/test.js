@@ -33,8 +33,12 @@ describe('safeFloat toString, toNumber', () => {
   });
 
   it('should return new SafeFloat(0.123456, 6).toString() => 0.000000123456', () => {
+    expect(new SafeFloat(0).toString())
+      .toEqual('0');
+  });
+  it('should return new SafeFloat(0.123456, 6).toString() => 0.00000012345 since SafeFloat.MAX_NE === 12 ', () => {
     expect(new SafeFloat(0.123456, 6).toString())
-      .toEqual('0.000000123456');
+      .toEqual('0.00000012345');
   });
 
   it('should return new SafeFloat(0.123456).toString(2) => 0.123456', () => {
@@ -47,15 +51,11 @@ describe('safeFloat toString, toNumber', () => {
       .toEqual('0.123456000');
   });
 
-  it('should return new SafeFloat(123456).toString(3) => 123456.000', () => {
-    expect(new SafeFloat(123456).toString(3))
-      .toEqual('123456.000');
+  it('toNumber Works', () => {
+    expect(new SafeFloat('1234567890.1234567890').toString())
+      .toEqual('1234567890.123456789');
   });
 
-  it(`should return new SafeFloat(-8.87).plus(-7.1).toString() => -15.97`, () => {
-    expect(new SafeFloat(-8.87).plus(-7.1).toString())
-      .toEqual('-15.97');
-  });
 })
 
 describe('safeFloat calculate', () => {
@@ -65,6 +65,11 @@ describe('safeFloat calculate', () => {
 
     expect(SafeFloat.plus(0.1, 0.2).toString())
       .toEqual('0.3');
+  });
+
+  it(`should return new SafeFloat(-8.87).plus(-7.1).toString() => -15.97`, () => {
+    expect(new SafeFloat(-8.87).plus(-7.1).toString())
+      .toEqual('-15.97');
   });
 
   it('should return 15.97', () => {

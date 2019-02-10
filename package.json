@@ -22,5 +22,9 @@
   "devDependencies": {
     "jest": "^23.6.0",
     "typescript": "^3.0.3"
+  },
+  "dependencies": {
+    "decimal.js": "^10.0.2",
+    "decimal.js-light": "^2.5.0"
   }
 }
